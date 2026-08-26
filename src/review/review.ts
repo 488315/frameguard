@@ -32,6 +32,8 @@ export interface ReviewState {
 
 export interface ReviewAuthority {
   getState(): ReviewState;
+  loadDocument(nextDocument: EditorDocument): ReviewState;
+  reset(): ReviewState;
   propose(objective: string): ChangeSet;
   setApproval(id: ChangeId, approved: boolean): ChangeSet;
   rejectChange(id: ChangeId): ChangeSet;
@@ -89,6 +91,20 @@ export function createReviewAuthority(): ReviewAuthority {
   };
   return {
     getState: state,
+    loadDocument(nextDocument) {
+      document = cloneDocument(nextDocument);
+      proposal = null;
+      modifiedElements = [];
+      history = [];
+      return state();
+    },
+    reset() {
+      document = null;
+      proposal = null;
+      modifiedElements = [];
+      history = [];
+      return state();
+    },
     propose(objective) {
       if (!objective.trim()) throw new Error("Objective must not be empty");
       if (proposal) throw new Error("An active proposal already exists");

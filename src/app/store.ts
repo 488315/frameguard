@@ -3,7 +3,10 @@ import {
   type ChangeId,
   type ReviewState,
 } from "../review/review";
-import type { ElementId } from "../editor/document";
+import {
+  parseImportedDocument,
+  type ElementId,
+} from "../editor/document";
 export interface Activity {
   tool: string;
   result: string;
@@ -90,6 +93,25 @@ export function createAppStore() {
     },
     inspect() {
       return review.getState();
+    },
+    importLayout(source: string) {
+      return run(
+        "import_layout",
+        () => review.loadDocument(parseImportedDocument(source)),
+        () => {
+          selectedLayer = null;
+          selectedChange = null;
+          agentApplyAuthorized = false;
+        },
+      );
+    },
+    resetWorkspace() {
+      review.reset();
+      selectedLayer = null;
+      selectedChange = null;
+      agentApplyAuthorized = false;
+      activity = null;
+      emit();
     },
     propose(objective: string) {
       return run(
