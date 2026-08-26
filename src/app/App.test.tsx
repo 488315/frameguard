@@ -114,6 +114,8 @@ test("shows activity recorded after a completed UI action", async () => {
     expect(screen.getByText("propose_adaptation")).toBeVisible(),
   );
   store.record("inspect_document", "Document inspected");
-  expect(screen.getByText("inspect_document")).toBeVisible();
+  await waitFor(() =>
+    expect(screen.getByText("inspect_document")).toBeVisible(),
+  );
   expect(screen.getByText("Document inspected")).toBeVisible();
 });

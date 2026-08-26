@@ -34,7 +34,7 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
       void Promise.resolve()
         .then(action)
         .then(() => {
-          setNotice({ tone: "success", text: label.replace(/ing\b/, "ed") });
+          setNotice(null);
         })
         .catch((error: unknown) => {
           setNotice({
