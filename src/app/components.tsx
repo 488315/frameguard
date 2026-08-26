@@ -71,9 +71,7 @@ export function LayerRail({
           const id = rawId as ElementId;
           const isAffected = affected.has(id);
           const selected = state.selectedLayer === id;
-          const modified =
-            state.document.revision > 1 &&
-            (id === "headline" || id === "image");
+          const modified = state.modifiedElements.includes(id);
           const description = [
             item.label,
             item.protected && "protected",

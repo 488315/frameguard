@@ -17,6 +17,7 @@ export interface AppSnapshot extends ReviewState {
 }
 
 function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
+  Object.freeze(snapshot.modifiedElements);
   Object.freeze(snapshot.document.elements);
   Object.values(snapshot.document.layouts).forEach(Object.freeze);
   Object.freeze(snapshot.document.layouts);

@@ -27,6 +27,7 @@ export interface ReviewState {
   document: EditorDocument;
   proposal: ChangeSet | null;
   canUndo: boolean;
+  modifiedElements: ElementId[];
 }
 
 export interface ReviewAuthority {
@@ -43,11 +44,16 @@ export interface ReviewAuthority {
 export function createReviewAuthority(): ReviewAuthority {
   let document = createInitialDocument();
   let proposal: ChangeSet | null = null;
-  let history: EditorDocument[] = [];
+  let modifiedElements: ElementId[] = [];
+  let history: Array<{
+    document: EditorDocument;
+    modifiedElements: ElementId[];
+  }> = [];
   const state = (): ReviewState => ({
     document: cloneDocument(document),
     proposal: proposal ? structuredClone(proposal) : null,
     canUndo: history.length > 0,
+    modifiedElements: [...modifiedElements],
   });
   const updateChange = (
     id: ChangeId,
@@ -146,8 +152,14 @@ export function createReviewAuthority(): ReviewAuthority {
           next.layouts.mobile.imagePosition = "68% center";
       }
       next.revision += 1;
-      history = [cloneDocument(document)];
+      history = [
+        {
+          document: cloneDocument(document),
+          modifiedElements: [...modifiedElements],
+        },
+      ];
       document = next;
+      modifiedElements = approved.map((change) => change.target);
       proposal = null;
       return state();
     },
@@ -158,7 +170,8 @@ export function createReviewAuthority(): ReviewAuthority {
     undo() {
       const prior = history.pop();
       if (!prior) return { changed: false, document: cloneDocument(document) };
-      document = prior;
+      document = prior.document;
+      modifiedElements = prior.modifiedElements;
       proposal = null;
       return { changed: true, document: cloneDocument(document) };
     },
