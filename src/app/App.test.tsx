@@ -10,7 +10,9 @@ test("renders the empty workspace with no demo layers or canvases", () => {
   expect(screen.getByRole("main")).toHaveTextContent("FrameGuard");
   expect(screen.getByText("Start your first review")).toBeVisible();
   expect(screen.getByText("No layers yet")).toBeVisible();
-  expect(screen.getByText("No active proposal.")).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "No active proposal" }),
+  ).toBeVisible();
   expect(
     screen.getAllByRole("button", { name: "Create proposal" }),
   ).toHaveLength(2);
@@ -97,7 +99,9 @@ test("visibly reflects proposal, approval, apply, and undo", async () => {
   await user.click(screen.getByRole("button", { name: "Approve Image crop" }));
   await user.click(screen.getByRole("button", { name: "Apply 2 changes" }));
   expect(screen.getByText("REVISION 02")).toBeVisible();
-  expect(screen.getByText("No active proposal.")).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "No active proposal" }),
+  ).toBeVisible();
   expect(
     screen.getByRole("button", { name: "Apply 0 changes" }),
   ).toBeDisabled();
@@ -112,7 +116,9 @@ test("reject removes the proposal and preserves committed revision", async () =>
     screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   await user.click(screen.getByRole("button", { name: "Reject all" }));
-  expect(screen.getByText("No active proposal.")).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "No active proposal" }),
+  ).toBeVisible();
   expect(screen.getByRole("button", { name: "Reject all" })).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Apply 0 changes" }),
@@ -217,7 +223,9 @@ test("keeps the empty workspace usable after an invalid import", async () => {
     screen.getByLabelText("Import layout file"),
     new File(["not json"], "broken.json", { type: "application/json" }),
   );
-  expect(await screen.findByText("Import must contain valid JSON")).toBeVisible();
+  expect(
+    await screen.findByText("Import must contain valid JSON"),
+  ).toBeVisible();
   expect(store.getSnapshot().document).toBeNull();
   expect(screen.getByText("Start your first review")).toBeVisible();
   expect(screen.getByRole("button", { name: "Import layout" })).toBeEnabled();

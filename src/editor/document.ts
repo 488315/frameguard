@@ -131,10 +131,7 @@ export function parseImportedDocument(source: string): EditorDocument {
     }
   }
   const document = parsed as unknown as EditorDocument;
-  if (
-    !document.elements.logo.protected ||
-    !document.elements.legal.protected
-  ) {
+  if (!document.elements.logo.protected || !document.elements.legal.protected) {
     throw new Error("Logo and Legal must remain protected");
   }
   return cloneDocument(document);

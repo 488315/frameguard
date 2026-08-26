@@ -70,7 +70,9 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (!file) return;
-    run("Importing layout", async () => store.importLayout(await readFile(file)));
+    run("Importing layout", async () =>
+      store.importLayout(await readFile(file)),
+    );
   };
   return (
     <main aria-busy={busy}>

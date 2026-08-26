@@ -1,8 +1,10 @@
 import {
   ArrowCounterClockwise,
   ArrowRight,
+  Browser,
   Check,
   DownloadSimple,
+  FileText,
   LockKey,
   MagnifyingGlassMinus,
   MagnifyingGlassPlus,
@@ -75,39 +77,41 @@ export function LayerRail({
         </div>
       ) : (
         <ul className="layer-list">
-          {Object.entries(state.document.elements).map(([rawId, item], index) => {
-          const id = rawId as ElementId;
-          const isAffected = affected.has(id);
-          const selected = state.selectedLayer === id;
-          const modified = state.modifiedElements.includes(id);
-          const description = [
-            item.label,
-            item.protected && "protected",
-            isAffected && "proposal affected",
-            modified && "modified",
-          ]
-            .filter(Boolean)
-            .join(", ");
-          return (
-            <li key={id}>
-              <button
-                aria-label={description}
-                aria-current={selected ? "true" : undefined}
-                className={`layer-row ${selected ? "active" : ""} ${isAffected ? "affected" : ""} ${modified ? "modified" : ""}`}
-                onClick={() => store.selectLayer(id)}
-              >
-                <span className="layer-no">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="layer-label">{item.label}</span>
-                {(isAffected || modified) && <i aria-hidden="true" />}
-                {item.protected && (
-                  <LockKey aria-label="Protected" size={12} weight="fill" />
-                )}
-              </button>
-            </li>
-          );
-          })}
+          {Object.entries(state.document.elements).map(
+            ([rawId, item], index) => {
+              const id = rawId as ElementId;
+              const isAffected = affected.has(id);
+              const selected = state.selectedLayer === id;
+              const modified = state.modifiedElements.includes(id);
+              const description = [
+                item.label,
+                item.protected && "protected",
+                isAffected && "proposal affected",
+                modified && "modified",
+              ]
+                .filter(Boolean)
+                .join(", ");
+              return (
+                <li key={id}>
+                  <button
+                    aria-label={description}
+                    aria-current={selected ? "true" : undefined}
+                    className={`layer-row ${selected ? "active" : ""} ${isAffected ? "affected" : ""} ${modified ? "modified" : ""}`}
+                    onClick={() => store.selectLayer(id)}
+                  >
+                    <span className="layer-no">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="layer-label">{item.label}</span>
+                    {(isAffected || modified) && <i aria-hidden="true" />}
+                    {item.protected && (
+                      <LockKey aria-label="Protected" size={12} weight="fill" />
+                    )}
+                  </button>
+                </li>
+              );
+            },
+          )}
         </ul>
       )}
     </aside>
@@ -222,24 +226,33 @@ export function ReviewWorkspace({
           </div>
         </div>
         <div className="workspace-empty-card">
+          <div className="empty-illustration" aria-hidden="true">
+            <Browser weight="thin" />
+            <span className="form-tall" />
+            <span className="form-low" />
+            <span className="form-round" />
+          </div>
           <h2>Start your first review</h2>
           <p>
             You don’t have an active proposal or adaptation yet. Create a
-            proposal to begin a guided review, or import a layout to get started.
+            proposal to begin a guided review, or import a layout to get
+            started.
           </p>
-          <button
-            disabled={busy}
-            onClick={() =>
-              run("Creating proposal", () =>
-                store.propose("Adapt the launch page for mobile"),
-              )
-            }
-          >
-            Create proposal
-          </button>
-          <button disabled={busy} onClick={openImport}>
-            Import layout
-          </button>
+          <div className="workspace-empty-actions">
+            <button
+              disabled={busy}
+              onClick={() =>
+                run("Creating proposal", () =>
+                  store.propose("Adapt the launch page for mobile"),
+                )
+              }
+            >
+              Create proposal
+            </button>
+            <button disabled={busy} onClick={openImport}>
+              Import layout
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -318,20 +331,26 @@ export function ProposalInspector({
       (change) => change.applicable && change.approved,
     ).length ?? 0;
   return (
-    <aside className="review" aria-label="Proposal inspector">
+    <aside
+      className={`review ${!state.proposal ? "empty-workspace-review" : ""}`}
+      aria-label="Proposal inspector"
+    >
       <div className="review-head">
-        <p>CHANGE SET 01</p>
-        <h1>{state.proposal ? "Mobile adaptation" : "Review proposal"}</h1>
+        <p>{state.proposal ? "CHANGE SET 01" : "REVIEW PROPOSAL"}</p>
+        <h1>{state.proposal ? "Mobile adaptation" : "No active proposal"}</h1>
         <span>
           {state.proposal
             ? `${state.proposal.changes.length} proposed changes`
-            : "No active proposal"}
+            : "Nothing to review yet."}
         </span>
       </div>
       {!state.proposal ? (
         <div className="empty">
-          <p>No active proposal.</p>
-          <span>Prepare a mobile adaptation to begin a controlled review.</span>
+          <div className="proposal-empty-icon" aria-hidden="true">
+            <FileText weight="thin" />
+            <i />
+          </div>
+          <p>Create a proposal to begin a controlled review.</p>
           <button
             disabled={busy}
             onClick={() =>
@@ -365,8 +384,8 @@ export function ProposalInspector({
                   <small>{change.description}</small>
                   <em>
                     {state.document?.elements[change.target].label ??
-                      change.target} ·{" "}
-                    {change.kind}
+                      change.target}{" "}
+                    · {change.kind}
                   </em>
                 </span>
                 <span
