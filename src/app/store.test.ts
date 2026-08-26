@@ -37,6 +37,18 @@ describe("app store review focus", () => {
       "Make room for what comes next.",
     );
   });
+
+  it("publishes deeply immutable proposal and history snapshots", () => {
+    const store = createAppStore();
+    const proposal = store.createProposal(customProposal);
+    const active = store.getSnapshot();
+    expect(Object.isFrozen(active.proposal?.changes[0].operation)).toBe(true);
+    store.setApproval(proposal.changes[0].id, true);
+    store.applyFromUi();
+    const history = store.getSnapshot().reviewHistory[0];
+    expect(Object.isFrozen(history.changes[0])).toBe(true);
+    expect(Object.isFrozen(history.approvedChangeIds)).toBe(true);
+  });
   it("starts with no active proposal or proposal selection", () => {
     const state = createAppStore().getSnapshot();
     expect(state.proposal).toBeNull();

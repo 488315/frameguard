@@ -25,18 +25,23 @@ export interface AppSnapshot extends ReviewState {
 function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
   Object.freeze(snapshot.modifiedElements);
   if (snapshot.document) {
+    Object.values(snapshot.document.elements).forEach(Object.freeze);
     Object.freeze(snapshot.document.elements);
     Object.values(snapshot.document.layouts).forEach(Object.freeze);
     Object.freeze(snapshot.document.layouts);
     Object.freeze(snapshot.document);
   }
   if (snapshot.previewDocument) {
+    Object.values(snapshot.previewDocument.elements).forEach(Object.freeze);
     Object.freeze(snapshot.previewDocument.elements);
     Object.values(snapshot.previewDocument.layouts).forEach(Object.freeze);
     Object.freeze(snapshot.previewDocument.layouts);
     Object.freeze(snapshot.previewDocument);
   }
-  snapshot.proposal?.changes.forEach(Object.freeze);
+  snapshot.proposal?.changes.forEach((change) => {
+    Object.freeze(change.operation);
+    Object.freeze(change);
+  });
   if (snapshot.proposal) {
     Object.freeze(snapshot.proposal.changes);
     Object.freeze(snapshot.proposal);
