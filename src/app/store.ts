@@ -143,8 +143,11 @@ export function createAppStore() {
     },
     undo() {
       agentApplyAuthorized = false;
-      selectedChange = null;
-      return run("undo_last_change_set", () => review.undo());
+      return run("undo_last_change_set", () => {
+        const result = review.undo();
+        if (result.changed) selectedChange = null;
+        return result;
+      });
     },
     record(tool: string, result: string) {
       activity = { tool, result };
