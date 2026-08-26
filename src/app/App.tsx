@@ -1,7 +1,9 @@
 import {
+  type ChangeEvent,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -20,6 +22,7 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
     [suppliedStore],
   );
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const importInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{
     tone: "working" | "error";
@@ -56,12 +59,39 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
     notice && (notice.tone === "working" || notice.activity === state.activity)
       ? notice
       : null;
+  const readFile = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("Layout file could not be read"));
+      reader.readAsText(file);
+    });
+  const importLayout = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    run("Importing layout", async () => store.importLayout(await readFile(file)));
+  };
   return (
     <main aria-busy={busy}>
+      <input
+        ref={importInput}
+        className="visually-hidden"
+        type="file"
+        accept=".json,application/json"
+        aria-label="Import layout file"
+        onChange={importLayout}
+      />
       <ReviewHeader state={state} store={store} run={run} busy={busy} />
       <div className="workspace">
         <LayerRail state={state} store={store} />
-        <ReviewWorkspace state={state} store={store} run={run} busy={busy} />
+        <ReviewWorkspace
+          state={state}
+          store={store}
+          run={run}
+          busy={busy}
+          openImport={() => importInput.current?.click()}
+        />
         <ProposalInspector state={state} store={store} run={run} busy={busy} />
       </div>
       <footer

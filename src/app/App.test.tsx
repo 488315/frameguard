@@ -14,7 +14,7 @@ test("renders the empty workspace with no demo layers or canvases", () => {
   expect(
     screen.getAllByRole("button", { name: "Create proposal" }),
   ).toHaveLength(2);
-  expect(screen.getByRole("button", { name: "Import layout" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Import layout" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Reject all" })).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Apply 0 changes" }),

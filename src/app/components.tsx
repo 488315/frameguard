@@ -201,11 +201,13 @@ export function ReviewWorkspace({
   store,
   run,
   busy,
+  openImport,
 }: {
   state: AppSnapshot;
   store: AppStore;
   run: (label: string, action: () => unknown) => void;
   busy: boolean;
+  openImport: () => void;
 }) {
   const [zoom, setZoom] = React.useState(0);
   const zoomScale = [0.82, 1, 1.16][zoom + 1];
@@ -235,7 +237,9 @@ export function ReviewWorkspace({
           >
             Create proposal
           </button>
-          <button disabled>Import layout</button>
+          <button disabled={busy} onClick={openImport}>
+            Import layout
+          </button>
         </div>
       </section>
     );
