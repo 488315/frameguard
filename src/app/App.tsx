@@ -31,7 +31,11 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
     (label: string, action: () => unknown) => {
       if (busy) return;
       setBusy(true);
-      setNotice({ tone: "working", text: `${label}…`, activity: state.activity });
+      setNotice({
+        tone: "working",
+        text: `${label}…`,
+        activity: state.activity,
+      });
       void Promise.resolve()
         .then(action)
         .then(() => {
@@ -49,8 +53,7 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
     [busy, state.activity, store],
   );
   const visibleNotice =
-    notice &&
-    (notice.tone === "working" || notice.activity === state.activity)
+    notice && (notice.tone === "working" || notice.activity === state.activity)
       ? notice
       : null;
   return (
@@ -66,7 +69,9 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
         aria-live="polite"
       >
         <span>ACTIVITY</span>
-        <b>{visibleNotice?.text ?? state.activity?.tool ?? "Ready for review"}</b>
+        <b>
+          {visibleNotice?.text ?? state.activity?.tool ?? "Ready for review"}
+        </b>
         <p>
           {visibleNotice
             ? visibleNotice.tone === "error"
