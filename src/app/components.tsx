@@ -92,7 +92,7 @@ export function LayerRail({
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <span className="layer-label">{item.label}</span>
-                {isAffected && <i aria-hidden="true" />}
+                {(isAffected || modified) && <i aria-hidden="true" />}
                 {item.protected && (
                   <LockKey aria-label="Protected" size={12} weight="fill" />
                 )}
