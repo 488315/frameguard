@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
 import { App } from "./App";
@@ -74,4 +74,31 @@ test("reject removes the proposal and preserves committed revision", async () =>
   await user.click(screen.getByRole("button", { name: "Reject all" }));
   expect(screen.getByText("No active proposal")).toBeVisible();
   expect(screen.getByText("REVISION 01")).toBeVisible();
+});
+
+test("supports keyboard layer selection", async () => {
+  const user = userEvent.setup();
+  render(<App store={createAppStore()} />);
+  const imageLayer = screen.getByRole("button", { name: "Image" });
+  imageLayer.focus();
+  await user.keyboard("{Enter}");
+  expect(imageLayer).toHaveAttribute("aria-current", "true");
+});
+
+test("announces pending work and preserves state on failure", async () => {
+  const store = createAppStore();
+  store.propose = () => {
+    throw new Error("Proposal service unavailable");
+  };
+  render(<App store={store} />);
+  fireEvent.click(screen.getByRole("button", { name: "Create demo proposal" }));
+  expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+  expect(await screen.findByText("Proposal service unavailable")).toBeVisible();
+  await waitFor(() =>
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "false"),
+  );
+  expect(screen.getByText("REVISION 01")).toBeVisible();
+  expect(
+    screen.getByText("The committed document was not changed."),
+  ).toBeVisible();
 });
