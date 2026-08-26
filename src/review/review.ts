@@ -168,8 +168,9 @@ function validateProposalInput(input: unknown): asserts input is ProposalInput {
         });
         return;
       }
+      const rawOperation = rawChange.operation;
       const operationSupported = operationKinds.includes(
-        rawChange.operation.kind as (typeof operationKinds)[number],
+        rawOperation.kind as (typeof operationKinds)[number],
       );
       if (!operationSupported) {
         issues.push({
@@ -182,10 +183,10 @@ function validateProposalInput(input: unknown): asserts input is ProposalInput {
         operationSupported &&
         !operationsForTarget(
           rawChange.target as (typeof elementIds)[number],
-        ).some((operation) => operation.kind === rawChange.operation.kind)
+        ).some((operation) => operation.kind === rawOperation.kind)
       ) {
         const operation = operationMetadata.find(
-          (candidate) => candidate.kind === rawChange.operation.kind,
+          (candidate) => candidate.kind === rawOperation.kind,
         );
         issues.push({
           path: `${path}.operation.kind`,
@@ -193,22 +194,20 @@ function validateProposalInput(input: unknown): asserts input is ProposalInput {
         });
       }
       if (
-        !canvases.includes(
-          rawChange.operation.canvas as (typeof canvases)[number],
-        )
+        !canvases.includes(rawOperation.canvas as (typeof canvases)[number])
       ) {
         issues.push({
           path: `${path}.operation.canvas`,
           message: "Canvas is not supported",
         });
       }
-      if (typeof rawChange.operation.value !== "string") {
+      if (typeof rawOperation.value !== "string") {
         issues.push({
           path: `${path}.operation.value`,
           message: "Proposed value must be text",
         });
       }
-      const identity = `${String(rawChange.target)}:${String(rawChange.operation.kind)}:${String(rawChange.operation.canvas)}`;
+      const identity = `${String(rawChange.target)}:${String(rawOperation.kind)}:${String(rawOperation.canvas)}`;
       if (identities.has(identity)) {
         issues.push({ path, message: "Duplicate target operation and canvas" });
       }
