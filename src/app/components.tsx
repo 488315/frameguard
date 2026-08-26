@@ -68,6 +68,12 @@ export function LayerRail({
 }) {
   const layers = deriveLayerNavigatorItems(state);
   const listRef = React.useRef<HTMLUListElement>(null);
+  React.useEffect(() => {
+    const selected = listRef.current?.querySelector<HTMLElement>(
+      '[role="option"][aria-selected="true"]',
+    );
+    selected?.scrollIntoView?.({ block: "nearest" });
+  }, [state.selectedLayer]);
   const accessibleName = (layer: LayerNavigatorItem) => {
     const changeDescription = layer.hasProposedChanges
       ? `${layer.proposedChangeCount} proposed ${layer.proposedChangeCount === 1 ? "change" : "changes"}`

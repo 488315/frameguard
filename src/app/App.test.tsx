@@ -6,7 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { createInitialDocument } from "../editor/document";
 import { App } from "./App";
 import { createAppStore } from "./store";
@@ -346,6 +346,26 @@ test("synchronizes change selection back to Layers and the preview", async () =>
   ).toHaveAttribute("aria-selected", "true");
   expect(screen.getByLabelText("Selected Image layer")).toBeVisible();
   expect(screen.getByLabelText("proposed crop boundary")).toBeVisible();
+});
+
+test("keeps externally selected layer rows visible within the navigator", async () => {
+  const user = userEvent.setup();
+  const scrollIntoView = vi.fn();
+  const original = HTMLElement.prototype.scrollIntoView;
+  HTMLElement.prototype.scrollIntoView = scrollIntoView;
+  try {
+    const { store } = activeStore();
+    render(<App store={store} />);
+    scrollIntoView.mockClear();
+
+    await user.click(
+      screen.getByRole("button", { name: "Inspect Image change" }),
+    );
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  } finally {
+    HTMLElement.prototype.scrollIntoView = original;
+  }
 });
 
 test("keeps protected layers inspectable while mutation remains blocked", async () => {
