@@ -72,6 +72,32 @@ describe("review authority", () => {
     expect(review.getState().modifiedElements).toEqual([]);
   });
 
+  it("commits only real document differences and rejects a no-op apply", () => {
+    const review = createReviewAuthority();
+    review.propose("adapt");
+    review.setApproval("headline-reflow", true);
+    review.apply();
+
+    review.propose("adapt again");
+    review.setApproval("headline-reflow", true);
+    review.setApproval("image-crop", true);
+    expect(review.apply()).toMatchObject({
+      document: { revision: 3 },
+      modifiedElements: ["image"],
+    });
+
+    review.propose("adapt once more");
+    review.setApproval("headline-reflow", true);
+    expect(() => review.apply()).toThrow(
+      "Approved changes do not modify the document",
+    );
+    expect(review.getState()).toMatchObject({
+      document: { revision: 3 },
+      proposal: { baseRevision: 3 },
+      modifiedElements: ["image"],
+    });
+  });
+
   it("does not mutate with zero approvals or a stale base revision", () => {
     const empty = createReviewAuthority();
     empty.propose("adapt");
