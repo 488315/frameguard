@@ -160,3 +160,34 @@ test("proposal composer remains usable at required desktop resolutions", async (
     });
   }
 });
+
+test("layers remain available in a 200-percent-zoom equivalent layout", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await openComposer(page);
+  await fillBaseProposal(page, "Narrow Layers review");
+  await addImageChange(page);
+  await page.getByRole("button", { name: "Submit proposal" }).click();
+  await page.setViewportSize({ width: 640, height: 900 });
+
+  const layers = page.getByRole("listbox", { name: "Document layers" });
+  await expect(layers).toBeVisible();
+  await page
+    .getByRole("option", { name: "Body Copy, no proposed changes" })
+    .click();
+  await expect(
+    page.getByRole("option", {
+      name: "Body Copy, selected, no proposed changes",
+    }),
+  ).toBeVisible();
+  const overflow = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    content: document.documentElement.scrollWidth,
+  }));
+  expect(overflow.content).toBeLessThanOrEqual(overflow.viewport);
+  await page.screenshot({
+    path: `${screenshotDir}/layers-narrow-640x900.png`,
+    fullPage: true,
+  });
+});
