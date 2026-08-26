@@ -124,19 +124,23 @@ function LaunchCanvas({
   layout,
   selectedChange,
   proposal,
+  comparison,
 }: {
   mode: "desktop" | "mobile";
   layout: CanvasLayout;
   selectedChange: ReviewChange | null;
   proposal: boolean;
+  comparison?: "current" | "proposed";
 }) {
+  const showProposalDetails = proposal && comparison !== "current";
+  const canvasName = comparison ? `${comparison} ${mode}` : mode;
   return (
-    <div className={`canvas-frame ${mode}`}>
+    <div className={`canvas-frame ${mode} ${comparison ?? ""}`}>
       <div className="canvas-label">
-        <span>{mode}</span>
+        <span>{comparison ? `${mode} · ${comparison}` : mode}</span>
         <span>{mode === "desktop" ? "1440 × 1014" : "390 × 696"}</span>
       </div>
-      <article className={`canvas ${mode}`} aria-label={`${mode} canvas`}>
+      <article className={`canvas ${mode}`} aria-label={`${canvasName} canvas`}>
         <header>
           <strong>STILL / LIFE</strong>
           <span>
@@ -150,24 +154,13 @@ function LaunchCanvas({
               <span key={line}>{line}</span>
             ))}
           </h2>
-          {mode === "mobile" &&
-            proposal &&
-            selectedChange?.target === "headline" &&
-            selectedChange.canvas === mode && (
-              <span
-                className="headline-preview-label"
-                aria-label="Proposed headline preview"
-              >
-                Proposed preview
-              </span>
-            )}
           <p>Objects and ideas for a slower, more deliberate season.</p>
           <span className="canvas-cta">
             Explore the collection <ArrowRight size={13} />
           </span>
         </div>
         <div
-          className={`image-field ${selectedChange?.target === "image" && selectedChange.canvas === mode && proposal ? "crop-focus" : ""}`}
+          className={`image-field ${selectedChange?.target === "image" && selectedChange.canvas === mode && showProposalDetails ? "crop-focus" : ""}`}
           style={{ backgroundPosition: layout.imagePosition }}
         >
           <div className="still-life">
@@ -177,7 +170,7 @@ function LaunchCanvas({
           </div>
           {selectedChange?.target === "image" &&
             selectedChange.canvas === mode &&
-            proposal && (
+            showProposalDetails && (
               <div className="crop-guide" aria-label="proposed crop boundary">
                 <span>Proposed crop</span>
               </div>
@@ -192,7 +185,7 @@ function LaunchCanvas({
         {selectedChange?.target === "logo" &&
           selectedChange.canvas === mode &&
           !selectedChange.applicable &&
-          proposal && (
+          showProposalDetails && (
             <div className="blocked-vector" aria-label="blocked logo move">
               <ArrowRight />
               <span>Blocked at protected anchor</span>
@@ -221,6 +214,9 @@ export function ReviewWorkspace({
     state.proposal?.changes.find(
       (change) => change.id === state.selectedChange,
     ) ?? null;
+  const showMobileDiff = Boolean(
+    state.proposal && selectedProposalChange?.canvas === "mobile",
+  );
   if (!state.document) {
     return (
       <section className="stage empty-stage" aria-label="Empty workspace">
@@ -286,7 +282,7 @@ export function ReviewWorkspace({
       </div>
       <div className="canvas-scroll">
         <div
-          className="canvases"
+          className={`canvases ${showMobileDiff ? "with-mobile-diff" : ""}`}
           style={{ "--preview-zoom": zoomScale } as React.CSSProperties}
         >
           <LaunchCanvas
@@ -298,15 +294,34 @@ export function ReviewWorkspace({
             selectedChange={selectedProposalChange}
             proposal={Boolean(state.proposal)}
           />
-          <LaunchCanvas
-            mode="mobile"
-            layout={
-              state.previewDocument?.layouts.mobile ??
-              state.document.layouts.mobile
-            }
-            selectedChange={selectedProposalChange}
-            proposal={Boolean(state.proposal)}
-          />
+          {showMobileDiff ? (
+            <div className="mobile-diff" aria-label="Mobile before and after">
+              <LaunchCanvas
+                mode="mobile"
+                comparison="current"
+                layout={state.document.layouts.mobile}
+                selectedChange={selectedProposalChange}
+                proposal={Boolean(state.proposal)}
+              />
+              <LaunchCanvas
+                mode="mobile"
+                comparison="proposed"
+                layout={
+                  state.previewDocument?.layouts.mobile ??
+                  state.document.layouts.mobile
+                }
+                selectedChange={selectedProposalChange}
+                proposal={Boolean(state.proposal)}
+              />
+            </div>
+          ) : (
+            <LaunchCanvas
+              mode="mobile"
+              layout={state.document.layouts.mobile}
+              selectedChange={selectedProposalChange}
+              proposal={Boolean(state.proposal)}
+            />
+          )}
         </div>
       </div>
     </section>

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
 import { createInitialDocument } from "../editor/document";
@@ -126,6 +132,12 @@ test("creates a custom proposal through the accessible proposal composer", async
       (_, element) => element?.textContent === "A custom\nmobile headline",
     ).length,
   ).toBeGreaterThan(0);
+  expect(screen.getByLabelText("current mobile canvas")).toHaveTextContent(
+    "Make room for what comes next.",
+  );
+  const proposedMobile = screen.getByLabelText("proposed mobile canvas");
+  expect(within(proposedMobile).getByText("A custom")).toBeVisible();
+  expect(within(proposedMobile).getByText("mobile headline")).toBeVisible();
   expect(store.getSnapshot().document?.revision).toBe(1);
   expect(store.getSnapshot().proposal?.changes).toHaveLength(2);
 });
