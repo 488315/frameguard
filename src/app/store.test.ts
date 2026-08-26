@@ -39,4 +39,16 @@ describe("app store review focus", () => {
     expect(store.getSnapshot().proposal?.changes[0].rejected).toBe(true);
     expect(store.getSnapshot().document).toEqual(initial);
   });
+
+  it("preserves proposal focus when undo has no committed history", () => {
+    const store = createAppStore();
+    store.propose("adapt");
+    const result = store.undo();
+    expect(result.changed).toBe(false);
+    expect(store.getSnapshot()).toMatchObject({
+      selectedLayer: "headline",
+      selectedChange: "headline-reflow",
+      proposal: { id: "mobile-adaptation-1" },
+    });
+  });
 });
