@@ -49,7 +49,10 @@ export function createReviewAuthority(): ReviewAuthority {
     proposal: proposal ? structuredClone(proposal) : null,
     canUndo: history.length > 0,
   });
-  const updateChange = (id: ChangeId, action: (change: ReviewChange) => void) => {
+  const updateChange = (
+    id: ChangeId,
+    action: (change: ReviewChange) => void,
+  ) => {
     if (!proposal) throw new Error("No active proposal");
     const change = proposal.changes.find((item) => item.id === id);
     if (!change) throw new Error(`Unknown change ID: ${id}`);
@@ -59,7 +62,10 @@ export function createReviewAuthority(): ReviewAuthority {
     return structuredClone(proposal);
   };
   const candidate = (
-    change: Omit<ReviewChange, "applicable" | "approved" | "rejected" | "blockedReason">,
+    change: Omit<
+      ReviewChange,
+      "applicable" | "approved" | "rejected" | "blockedReason"
+    >,
   ): ReviewChange => {
     const protectedTarget = document.elements[change.target].protected;
     return {
@@ -68,7 +74,9 @@ export function createReviewAuthority(): ReviewAuthority {
       approved: false,
       rejected: false,
       ...(protectedTarget
-        ? { blockedReason: `${document.elements[change.target].label} is protected` }
+        ? {
+            blockedReason: `${document.elements[change.target].label} is protected`,
+          }
         : {}),
     };
   };

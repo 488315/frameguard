@@ -22,7 +22,9 @@ describe("review authority", () => {
 
   it("derives protected mutations from the authoritative layer model", () => {
     const proposal = createReviewAuthority().propose("adapt");
-    expect(proposal.changes.find((change) => change.id === "logo-move")).toMatchObject({
+    expect(
+      proposal.changes.find((change) => change.id === "logo-move"),
+    ).toMatchObject({
       target: "logo",
       kind: "move",
       applicable: false,
@@ -35,7 +37,10 @@ describe("review authority", () => {
     const initial = review.getState().document;
     review.propose("adapt");
     const proposal = review.rejectChange("headline-reflow");
-    expect(proposal.changes[0]).toMatchObject({ approved: false, rejected: true });
+    expect(proposal.changes[0]).toMatchObject({
+      approved: false,
+      rejected: true,
+    });
     expect(review.getState().document).toEqual(initial);
   });
 
