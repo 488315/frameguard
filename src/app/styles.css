@@ -66,7 +66,7 @@ input:focus-visible {
     serif;
   margin: 0 0 20px;
 }
-.layers button {
+.layer-row {
   display: grid;
   grid-template-columns: 25px 1fr 14px;
   align-items: center;
@@ -78,14 +78,14 @@ input:focus-visible {
   font-size: 12px;
   border-left: 2px solid transparent;
 }
-.layers button span {
+.layer-row span {
   font-size: 9px;
-  color: #8d877d;
+  color: #625e57;
 }
-.layers button svg {
+.layer-row svg {
   color: #c2822f;
 }
-.layers button.active {
+.layer-row.active {
   background: #ebe6da;
   border-color: #d7492e;
 }
@@ -153,7 +153,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 3px;
-  color: #a16f25;
+  color: #76501a;
 }
 .canvas footer {
   border: 0;
@@ -179,7 +179,7 @@ input:focus-visible {
   font-size: 10px;
   max-width: 36ch;
 }
-.launch-copy button {
+.canvas-cta {
   border: 0;
   border-bottom: 1px solid;
   background: none;
@@ -303,7 +303,7 @@ input:focus-visible {
 }
 .change-no {
   font-size: 9px;
-  color: #8d877d;
+  color: #625e57;
 }
 .change-list b {
   display: block;
@@ -356,8 +356,8 @@ input:focus-visible {
 }
 .actions .apply,
 .empty button {
-  background: #d7492e;
-  border-color: #d7492e;
+  background: #b93622;
+  border-color: #b93622;
   color: white;
 }
 .actions button:disabled {
@@ -458,5 +458,26 @@ input:focus-visible {
   }
   .activity p {
     display: none;
+  }
+}
+
+/* Preserve the intended working scale on high-density desktop displays. */
+@media (min-width: 2200px) and (min-height: 1200px) {
+  #root {
+    zoom: 1.35;
+  }
+
+  .workspace {
+    min-height: calc(74.074dvh - 96px);
+  }
+}
+
+@media (min-width: 3200px) and (min-height: 1700px) {
+  #root {
+    zoom: 1.75;
+  }
+
+  .workspace {
+    min-height: calc(57.143dvh - 96px);
   }
 }

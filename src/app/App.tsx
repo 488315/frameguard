@@ -43,9 +43,9 @@ function LaunchCanvas({
           </div>
         )}
         <p>Objects and ideas for a slower, more deliberate season.</p>
-        <button>
+        <span className="canvas-cta">
           Explore the collection <ArrowRight size={13} />
-        </button>
+        </span>
       </div>
       <div
         className="image-field"
@@ -90,13 +90,21 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
       <div className="workspace">
         <aside className="layers">
           <h1>Layers</h1>
-          {Object.entries(state.document.elements).map(([id, item], index) => (
-            <button key={id} className={id === "headline" ? "active" : ""}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              {item.label}
-              {item.protected && <LockKey size={12} weight="fill" />}
-            </button>
-          ))}
+          <div className="layer-list" role="list">
+            {Object.entries(state.document.elements).map(
+              ([id, item], index) => (
+                <div
+                  role="listitem"
+                  key={id}
+                  className={`layer-row ${id === "headline" ? "active" : ""}`}
+                >
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  {item.label}
+                  {item.protected && <LockKey size={12} weight="fill" />}
+                </div>
+              ),
+            )}
+          </div>
         </aside>
         <section className="stage">
           <div className="stage-heading">

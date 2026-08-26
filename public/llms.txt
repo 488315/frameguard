@@ -1,0 +1,16 @@
+# FrameGuard
+
+FrameGuard is a local human-in-the-loop visual change-review demonstration for WebMCP.
+
+## Agent behavior
+
+- Inspect the document before proposing a change.
+- Keep protected Logo and Legal elements unchanged.
+- Present proposed changes visibly for human review.
+- Never apply agent-selected changes without authorization in the FrameGuard UI.
+- Keep exports local and secret-free.
+
+## Documentation
+
+- [Project README](/README.md)
+- [WebMCP evaluations](/docs/evaluations.md)
