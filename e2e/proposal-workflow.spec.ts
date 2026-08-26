@@ -70,6 +70,12 @@ test("manual proposal creates, previews, approves, and applies atomically", asyn
     page.getByRole("heading", { name: "E2E mobile review" }),
   ).toBeVisible();
   await expect(page.getByText("REVISION 01")).toBeVisible();
+  await expect(
+    page.getByRole("option", {
+      name: "Headline, selected, 1 proposed change",
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Selected Headline layer")).toBeVisible();
   await page.screenshot({ path: `${screenshotDir}/05-active-proposal.png` });
   await page.getByRole("button", { name: "Inspect Image change" }).click();
   await expect(page.getByLabel("proposed crop boundary")).toBeVisible();
@@ -78,6 +84,11 @@ test("manual proposal creates, previews, approves, and applies atomically", asyn
   });
 
   await page.getByRole("button", { name: "Approve Headline change" }).click();
+  await expect(
+    page.getByRole("option", {
+      name: "Headline, no proposed changes",
+    }),
+  ).toBeVisible();
   await page.screenshot({ path: `${screenshotDir}/08-partially-approved.png` });
   await page.getByRole("button", { name: "Approve Image change" }).click();
   await expect(
@@ -110,6 +121,11 @@ test("mixed proposal visibly blocks a protected logo attempt", async ({
   await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
   await expect(page.getByText(/Logo is protected/)).toBeVisible();
   await page.getByRole("button", { name: "Inspect Logo change" }).click();
+  await expect(
+    page.getByRole("option", {
+      name: "Logo, selected, protected, 1 proposed change",
+    }),
+  ).toBeVisible();
   await expect(page.getByLabel("blocked logo move")).toBeVisible();
   await page.screenshot({
     path: `${screenshotDir}/07-protected-change-blocked.png`,
@@ -213,4 +229,25 @@ test("active Layers review has no serious accessibility violations", async ({
       violation.impact === "serious" || violation.impact === "critical",
   );
   expect(serious).toEqual([]);
+});
+
+test.describe("high-density visual evidence", () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test("renders selected Layers state at high DPI", async ({ page }) => {
+    await page.goto("./");
+    await openComposer(page);
+    await fillBaseProposal(page, "High-density Layers review");
+    await addImageChange(page);
+    await page.getByRole("button", { name: "Submit proposal" }).click();
+    await page.getByRole("button", { name: "Inspect Image change" }).click();
+    await expect(
+      page.getByRole("option", {
+        name: "Image, selected, 1 proposed change",
+      }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `${screenshotDir}/layers-high-dpi-1440x900.png`,
+    });
+  });
 });
