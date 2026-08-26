@@ -641,6 +641,17 @@ select:focus-visible {
   align-items: center;
   font-size: clamp(8px, 0.72vw, 11px);
 }
+.selected-element {
+  outline: 1px solid #c9432c;
+  outline-offset: 2px;
+}
+.canvas strong.selected-element {
+  display: inline-block;
+}
+.image-field.selected-element,
+.canvas footer.selected-element {
+  outline-offset: -3px;
+}
 .image-field {
   height: 36%;
   background: #d8c8ab;
@@ -797,6 +808,14 @@ select:focus-visible {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+.layer-selection-empty {
+  margin: 0;
+  border-bottom: 1px solid #d4cec2;
+  padding: 13px;
+  color: #625d55;
+  font-size: 10px;
+  line-height: 1.45;
 }
 .change-row {
   border-bottom: 1px solid #d4cec2;

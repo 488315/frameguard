@@ -155,17 +155,26 @@ function LaunchCanvas({
   mode,
   layout,
   selectedChange,
+  selectedLayer,
   proposal,
   comparison,
 }: {
   mode: "desktop" | "mobile";
   layout: CanvasLayout;
   selectedChange: ReviewChange | null;
+  selectedLayer: { id: ElementId; label: string } | null;
   proposal: boolean;
   comparison?: "current" | "proposed";
 }) {
   const showProposalDetails = proposal && comparison !== "current";
   const canvasName = comparison ? `${comparison} ${mode}` : mode;
+  const showSelectedLayer =
+    comparison !== "current" &&
+    (!selectedChange || selectedChange.canvas === mode);
+  const selected = (id: ElementId) =>
+    showSelectedLayer && selectedLayer?.id === id;
+  const selectedLabel = (id: ElementId) =>
+    selected(id) ? `Selected ${selectedLayer?.label} layer` : undefined;
   return (
     <div className={`canvas-frame ${mode} ${comparison ?? ""}`}>
       <div className="canvas-label">
@@ -174,25 +183,42 @@ function LaunchCanvas({
       </div>
       <article className={`canvas ${mode}`} aria-label={`${canvasName} canvas`}>
         <header>
-          <strong>STILL / LIFE</strong>
+          <strong
+            className={selected("logo") ? "selected-element" : undefined}
+            aria-label={selectedLabel("logo")}
+          >
+            STILL / LIFE
+          </strong>
           <span>
             <LockKey size={12} weight="fill" /> Protected
           </span>
         </header>
         <div className="launch-copy">
           <p className="issue">ISSUE NO. 04 · AUTUMN</p>
-          <h2>
+          <h2
+            className={selected("headline") ? "selected-element" : undefined}
+            aria-label={selectedLabel("headline")}
+          >
             {layout.headline.split("\n").map((line) => (
               <span key={line}>{line}</span>
             ))}
           </h2>
-          <p>Objects and ideas for a slower, more deliberate season.</p>
-          <span className="canvas-cta">
+          <p
+            className={selected("body") ? "selected-element" : undefined}
+            aria-label={selectedLabel("body")}
+          >
+            Objects and ideas for a slower, more deliberate season.
+          </p>
+          <span
+            className={`canvas-cta ${selected("cta") ? "selected-element" : ""}`}
+            aria-label={selectedLabel("cta")}
+          >
             Explore the collection <ArrowRight size={13} />
           </span>
         </div>
         <div
-          className={`image-field ${selectedChange?.target === "image" && selectedChange.canvas === mode && showProposalDetails ? "crop-focus" : ""}`}
+          className={`image-field ${selected("image") ? "selected-element" : ""} ${selectedChange?.target === "image" && selectedChange.canvas === mode && showProposalDetails ? "crop-focus" : ""}`}
+          aria-label={selectedLabel("image")}
           style={{ backgroundPosition: layout.imagePosition }}
         >
           <div className="still-life">
@@ -208,7 +234,10 @@ function LaunchCanvas({
               </div>
             )}
         </div>
-        <footer>
+        <footer
+          className={selected("legal") ? "selected-element" : undefined}
+          aria-label={selectedLabel("legal")}
+        >
           © 2026 Still / Life. All rights reserved.{" "}
           <span>
             <LockKey size={10} weight="fill" /> Protected
@@ -246,6 +275,14 @@ export function ReviewWorkspace({
     state.proposal?.changes.find(
       (change) => change.id === state.selectedChange,
     ) ?? null;
+  const selectedLayer = state.selectedLayer
+    ? {
+        id: state.selectedLayer,
+        label:
+          state.document?.elements[state.selectedLayer].label ??
+          state.selectedLayer,
+      }
+    : null;
   const showMobileDiff = Boolean(
     state.proposal && selectedProposalChange?.canvas === "mobile",
   );
@@ -324,6 +361,7 @@ export function ReviewWorkspace({
               state.document.layouts.desktop
             }
             selectedChange={selectedProposalChange}
+            selectedLayer={selectedLayer}
             proposal={Boolean(state.proposal)}
           />
           {showMobileDiff ? (
@@ -333,6 +371,7 @@ export function ReviewWorkspace({
                 comparison="current"
                 layout={state.document.layouts.mobile}
                 selectedChange={selectedProposalChange}
+                selectedLayer={selectedLayer}
                 proposal={Boolean(state.proposal)}
               />
               <LaunchCanvas
@@ -343,6 +382,7 @@ export function ReviewWorkspace({
                   state.document.layouts.mobile
                 }
                 selectedChange={selectedProposalChange}
+                selectedLayer={selectedLayer}
                 proposal={Boolean(state.proposal)}
               />
             </div>
@@ -351,6 +391,7 @@ export function ReviewWorkspace({
               mode="mobile"
               layout={state.document.layouts.mobile}
               selectedChange={selectedProposalChange}
+              selectedLayer={selectedLayer}
               proposal={Boolean(state.proposal)}
             />
           )}
@@ -437,77 +478,85 @@ export function ProposalInspector({
           </button>
         </div>
       ) : (
-        <div className="change-list" role="list" aria-label="Proposed changes">
-          {state.proposal.changes.map((change, index) => (
-            <div
-              role="listitem"
-              key={change.id}
-              className={`change-row ${!change.applicable ? "blocked" : ""} ${state.selectedChange === change.id ? "selected" : ""}`}
-            >
-              <button
-                className="change-focus"
-                aria-label={`Inspect ${state.document?.elements[change.target].label ?? change.target} change`}
-                aria-current={
-                  state.selectedChange === change.id ? "true" : undefined
-                }
-                onClick={() => store.selectChange(change.id)}
+        <div className="change-list">
+          {state.selectedLayer && !state.selectedChange && (
+            <p className="layer-selection-empty">
+              {state.document?.elements[state.selectedLayer].label} has no
+              proposed changes.
+            </p>
+          )}
+          <div role="list" aria-label="Proposed changes">
+            {state.proposal.changes.map((change, index) => (
+              <div
+                role="listitem"
+                key={change.id}
+                className={`change-row ${!change.applicable ? "blocked" : ""} ${state.selectedChange === change.id ? "selected" : ""}`}
               >
-                <span className="change-no">0{index + 1}</span>
-                <span>
-                  <b>{change.summary}</b>
-                  <small>{change.rationale}</small>
-                  <em>
-                    {change.canvas} ·{" "}
-                    {change.operation.kind.replaceAll("_", " ")}
-                  </em>
-                  <dl className="change-values">
-                    <div>
-                      <dt>Before</dt>
-                      <dd>{change.before}</dd>
-                    </div>
-                    <div>
-                      <dt>After</dt>
-                      <dd>{change.proposed}</dd>
-                    </div>
-                  </dl>
-                </span>
-                <span
-                  className={`decision ${decisionLabel(change).toLowerCase()}`}
+                <button
+                  className="change-focus"
+                  aria-label={`Inspect ${state.document?.elements[change.target].label ?? change.target} change`}
+                  aria-current={
+                    state.selectedChange === change.id ? "true" : undefined
+                  }
+                  onClick={() => store.selectChange(change.id)}
                 >
-                  {decisionLabel(change)}
-                </span>
-              </button>
-              {change.applicable ? (
-                <div className="change-decisions">
-                  <button
-                    aria-label={`Reject ${state.document?.elements[change.target].label ?? change.target} change`}
-                    disabled={busy || change.decision === "rejected"}
-                    onClick={() => store.rejectChange(change.id)}
+                  <span className="change-no">0{index + 1}</span>
+                  <span>
+                    <b>{change.summary}</b>
+                    <small>{change.rationale}</small>
+                    <em>
+                      {change.canvas} ·{" "}
+                      {change.operation.kind.replaceAll("_", " ")}
+                    </em>
+                    <dl className="change-values">
+                      <div>
+                        <dt>Before</dt>
+                        <dd>{change.before}</dd>
+                      </div>
+                      <div>
+                        <dt>After</dt>
+                        <dd>{change.proposed}</dd>
+                      </div>
+                    </dl>
+                  </span>
+                  <span
+                    className={`decision ${decisionLabel(change).toLowerCase()}`}
                   >
-                    <X /> Reject
-                  </button>
-                  <button
-                    aria-label={`Approve ${state.document?.elements[change.target].label ?? change.target} change`}
-                    aria-pressed={change.decision === "approved"}
-                    disabled={busy}
-                    onClick={() =>
-                      store.setApproval(
-                        change.id,
-                        change.decision !== "approved",
-                      )
-                    }
-                  >
-                    <Check /> Approve
-                  </button>
-                </div>
-              ) : (
-                <p className="blocked-reason">
-                  <LockKey weight="fill" /> {change.blockedReason}. Original
-                  retained.
-                </p>
-              )}
-            </div>
-          ))}
+                    {decisionLabel(change)}
+                  </span>
+                </button>
+                {change.applicable ? (
+                  <div className="change-decisions">
+                    <button
+                      aria-label={`Reject ${state.document?.elements[change.target].label ?? change.target} change`}
+                      disabled={busy || change.decision === "rejected"}
+                      onClick={() => store.rejectChange(change.id)}
+                    >
+                      <X /> Reject
+                    </button>
+                    <button
+                      aria-label={`Approve ${state.document?.elements[change.target].label ?? change.target} change`}
+                      aria-pressed={change.decision === "approved"}
+                      disabled={busy}
+                      onClick={() =>
+                        store.setApproval(
+                          change.id,
+                          change.decision !== "approved",
+                        )
+                      }
+                    >
+                      <Check /> Approve
+                    </button>
+                  </div>
+                ) : (
+                  <p className="blocked-reason">
+                    <LockKey weight="fill" /> {change.blockedReason}. Original
+                    retained.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {!composerOpen && (

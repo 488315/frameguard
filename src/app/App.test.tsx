@@ -305,6 +305,49 @@ test("supports roving keyboard focus and activates a focused layer", async () =>
   expect(image).toHaveAttribute("aria-selected", "true");
 });
 
+test("selects unchanged layers without retaining stale change details", async () => {
+  const user = userEvent.setup();
+  const { store } = activeStore();
+  render(<App store={store} />);
+
+  await user.click(
+    screen.getByRole("option", { name: "Body Copy, no proposed changes" }),
+  );
+
+  expect(store.getSnapshot()).toMatchObject({
+    selectedLayer: "body",
+    selectedChange: null,
+  });
+  expect(
+    screen.getByRole("option", {
+      name: "Body Copy, selected, no proposed changes",
+    }),
+  ).toHaveAttribute("aria-selected", "true");
+  expect(screen.getAllByLabelText("Selected Body Copy layer")).toHaveLength(2);
+  expect(screen.getByText("Body Copy has no proposed changes.")).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Inspect Headline change" }),
+  ).not.toHaveAttribute("aria-current");
+});
+
+test("synchronizes change selection back to Layers and the preview", async () => {
+  const user = userEvent.setup();
+  const { store } = activeStore();
+  render(<App store={store} />);
+
+  await user.click(
+    screen.getByRole("button", { name: "Inspect Image change" }),
+  );
+
+  expect(
+    screen.getByRole("option", {
+      name: "Image, selected, 1 proposed change",
+    }),
+  ).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByLabelText("Selected Image layer")).toBeVisible();
+  expect(screen.getByLabelText("proposed crop boundary")).toBeVisible();
+});
+
 test("reviews individual changes, applies only approval, records history, and undoes", async () => {
   const user = userEvent.setup();
   const { store } = activeStore();
