@@ -295,13 +295,25 @@ export function createReviewAuthority(
         );
       }
       const changeIds = new Set<ProposalChangeId>();
-      const changes = input.changes.map((changeInput) => {
+      const changes = input.changes.map((changeInput, index) => {
         const id = ids.changeId();
         if (!id || changeIds.has(id)) {
           throw new Error("ID factory returned a duplicate change ID");
         }
         changeIds.add(id);
-        return materializeChange(current, id, changeInput);
+        try {
+          return materializeChange(current, id, changeInput);
+        } catch (error) {
+          throw new ProposalValidationError([
+            {
+              path: `changes.${index}.operation.value`,
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Proposed value is invalid",
+            },
+          ]);
+        }
       });
       if (
         !changes.some((change) => change.applicable) &&

@@ -146,7 +146,18 @@ export function ProposalComposer({
     } catch (error) {
       if (error instanceof ProposalValidationError) {
         const nextErrors = Object.fromEntries(
-          error.issues.map((issue) => [issue.path, issue.message]),
+          error.issues.map((issue) => {
+            const valueMatch = issue.path.match(
+              /^changes\.(\d+)\.operation\.value$/,
+            );
+            if (valueMatch) {
+              const change = changes[Number(valueMatch[1])];
+              if (change) {
+                return [`changes.${change.key}.value`, issue.message];
+              }
+            }
+            return [issue.path, issue.message];
+          }),
         );
         setErrors(nextErrors);
         focusFirstError(nextErrors);

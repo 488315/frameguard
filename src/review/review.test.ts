@@ -150,6 +150,37 @@ describe("review authority", () => {
     expect(mismatch.getState().document).toBeNull();
   });
 
+  it("reports invalid operation values at the exact proposal field", () => {
+    const review = createReviewAuthority();
+    try {
+      review.createProposal({
+        ...proposalInput(),
+        changes: [
+          {
+            target: "image",
+            operation: {
+              kind: "set_image_position",
+              canvas: "mobile",
+              value: "somewhere interesting",
+            },
+            rationale: "Shift the focal point.",
+          },
+        ],
+      });
+      throw new Error("Expected proposal validation to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProposalValidationError);
+      expect((error as ProposalValidationError).issues).toEqual([
+        {
+          path: "changes.0.operation.value",
+          message:
+            "Image position must be center, left center, right center, or 0%-100% center",
+        },
+      ]);
+    }
+    expect(review.getState()).toMatchObject({ document: null, proposal: null });
+  });
+
   it("fails proposal creation closed when the inspected revision is stale", () => {
     const review = createReviewAuthority();
     expect(() =>

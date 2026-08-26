@@ -119,6 +119,37 @@ test("creates a custom proposal through the accessible proposal composer", async
   expect(store.getSnapshot().proposal?.changes).toHaveLength(2);
 });
 
+test("keeps an invalid draft open and focuses its exact operation field", async () => {
+  const user = userEvent.setup();
+  const store = createAppStore();
+  render(<App store={store} />);
+  await openComposer(user);
+  await user.type(screen.getByLabelText("Proposal title"), "Crop review");
+  await user.type(
+    screen.getByLabelText("Proposal objective"),
+    "Keep the subject visible.",
+  );
+  await user.selectOptions(screen.getByLabelText("Layer for change 1"), "image");
+  await user.type(
+    screen.getByLabelText("Proposed value for change 1"),
+    "somewhere interesting",
+  );
+  await user.type(
+    screen.getByLabelText("Rationale for change 1"),
+    "Shift the focal point.",
+  );
+  await user.click(screen.getByRole("button", { name: "Submit proposal" }));
+
+  expect(
+    await screen.findAllByText(
+      "Image position must be center, left center, right center, or 0%-100% center",
+    ),
+  ).toHaveLength(2);
+  expect(screen.getByLabelText("Proposed value for change 1")).toHaveFocus();
+  expect(screen.getByLabelText("Proposal title")).toHaveValue("Crop review");
+  expect(store.getSnapshot().proposal).toBeNull();
+});
+
 test("cancels drafts and supports add/remove without losing keyboard focus", async () => {
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
