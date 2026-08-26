@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createInitialDocument } from "../editor/document";
 import { createReviewAuthority } from "./review";
 
 describe("review authority", () => {
@@ -127,7 +128,7 @@ describe("review authority", () => {
     review.propose("adapt");
     const initial = review.getState().document;
     review.reject();
-    expect(review.getState().document).toEqual(initial);
+    expect(review.getState().document).toBeNull();
     expect(review.undo().changed).toBe(false);
     review.propose("adapt");
     review.setApproval("headline-reflow", true);
@@ -138,6 +139,7 @@ describe("review authority", () => {
 
   it("keeps document protection outside the proposal lifecycle", () => {
     const review = createReviewAuthority();
+    review.loadDocument(createInitialDocument());
     review.propose("adapt");
     review.reject();
     expect(review.getState()).toMatchObject({
@@ -149,5 +151,14 @@ describe("review authority", () => {
         },
       },
     });
+  });
+
+  it("preserves an explicitly loaded workspace when its proposal is rejected", () => {
+    const review = createReviewAuthority();
+    const imported = createInitialDocument();
+    review.loadDocument(imported);
+    review.propose("adapt");
+    review.reject();
+    expect(review.getState().document).toEqual(imported);
   });
 });
