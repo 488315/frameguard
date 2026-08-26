@@ -143,14 +143,27 @@ export function createReviewAuthority(): ReviewAuthority {
       if (approved.length === 0)
         throw new Error("Select at least one applicable change");
       const next = cloneDocument(document);
+      const changedTargets: ElementId[] = [];
       for (const change of approved) {
         if (next.elements[change.target].protected)
           throw new Error(`${next.elements[change.target].label} is protected`);
-        if (change.id === "headline-reflow")
+        if (
+          change.id === "headline-reflow" &&
+          next.layouts.mobile.headline !== "Make room for\nwhat comes next."
+        ) {
           next.layouts.mobile.headline = "Make room for\nwhat comes next.";
-        if (change.id === "image-crop")
+          changedTargets.push(change.target);
+        }
+        if (
+          change.id === "image-crop" &&
+          next.layouts.mobile.imagePosition !== "68% center"
+        ) {
           next.layouts.mobile.imagePosition = "68% center";
+          changedTargets.push(change.target);
+        }
       }
+      if (changedTargets.length === 0)
+        throw new Error("Approved changes do not modify the document");
       next.revision += 1;
       history = [
         {
@@ -159,7 +172,7 @@ export function createReviewAuthority(): ReviewAuthority {
         },
       ];
       document = next;
-      modifiedElements = approved.map((change) => change.target);
+      modifiedElements = changedTargets;
       proposal = null;
       return state();
     },
