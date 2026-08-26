@@ -1,0 +1,47 @@
+import { describe, expect, it } from "vitest";
+import { createReviewAuthority } from "./review";
+
+describe("review authority", () => {
+  it("creates two applicable changes and one visible blocked logo change", () => {
+    const review = createReviewAuthority();
+    const proposal = review.propose("Adapt the launch page for mobile");
+    expect(proposal.changes.map(({ id, applicable }) => ({ id, applicable }))).toEqual([
+      { id: "headline-reflow", applicable: true },
+      { id: "image-crop", applicable: true },
+      { id: "logo-move", applicable: false },
+    ]);
+  });
+
+  it("rejects approval of the protected logo", () => {
+    const review = createReviewAuthority(); review.propose("adapt");
+    expect(() => review.setApproval("logo-move", true)).toThrow("protected");
+  });
+
+  it("applies selected allowed changes atomically and does not apply twice", () => {
+    const review = createReviewAuthority(); review.propose("adapt");
+    review.setApproval("headline-reflow", true); review.setApproval("image-crop", true);
+    expect(review.apply().document).toMatchObject({ revision: 2, layouts: { mobile: { headline: "Make room for\nwhat comes next.", imagePosition: "68% center" } } });
+    expect(() => review.apply()).toThrow("No active proposal");
+    expect(review.getState().document.revision).toBe(2);
+  });
+
+  it("does not mutate with zero approvals or a stale base revision", () => {
+    const empty = createReviewAuthority(); empty.propose("adapt");
+    expect(() => empty.apply()).toThrow("Select at least one");
+    expect(empty.getState().document.revision).toBe(1);
+    const stale = createReviewAuthority(); stale.propose("adapt"); stale.setApproval("headline-reflow", true);
+    stale.__testOnlyAdvanceRevision();
+    expect(() => stale.apply()).toThrow("stale");
+    expect(stale.getState().document.layouts.mobile.headline).not.toContain("\n");
+  });
+
+  it("rejects without mutation and undo restores the exact prior document", () => {
+    const review = createReviewAuthority(); const initial = review.getState().document;
+    review.propose("adapt"); review.reject();
+    expect(review.getState().document).toEqual(initial);
+    expect(review.undo().changed).toBe(false);
+    review.propose("adapt"); review.setApproval("headline-reflow", true); review.apply();
+    expect(review.undo()).toEqual({ changed: true, document: initial });
+    expect(review.undo().changed).toBe(false);
+  });
+});
