@@ -9,6 +9,7 @@ import {
   type EditorDocument,
   type ElementId,
 } from "../editor/document";
+import { resolveRelatedChangeId } from "./layers";
 export interface Activity {
   tool: string;
   result: string;
@@ -173,10 +174,7 @@ export function createAppStore() {
     },
     selectLayer(id: ElementId) {
       selectedLayer = id;
-      const related = review
-        .getState()
-        .proposal?.changes.find((change) => change.target === id);
-      selectedChange = related?.id ?? null;
+      selectedChange = resolveRelatedChangeId(review.getState().proposal, id);
       emit();
     },
     selectChange(id: ChangeId) {

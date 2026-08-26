@@ -69,6 +69,43 @@ describe("app store review focus", () => {
     });
   });
 
+  it("prefers an unresolved related change when a layer has several", () => {
+    const store = createAppStore();
+    const proposal = store.createProposal({
+      expectedRevision: 1,
+      title: "Responsive headline review",
+      objective: "Review both headline layouts.",
+      changes: [
+        {
+          target: "headline",
+          operation: {
+            kind: "set_text",
+            canvas: "mobile",
+            value: "Mobile headline",
+          },
+          rationale: "Balance the mobile line length.",
+        },
+        {
+          target: "headline",
+          operation: {
+            kind: "set_text",
+            canvas: "desktop",
+            value: "Desktop headline",
+          },
+          rationale: "Balance the desktop line length.",
+        },
+      ],
+    });
+    store.setApproval(proposal.changes[0].id, true);
+
+    store.selectLayer("headline");
+
+    expect(store.getSnapshot()).toMatchObject({
+      selectedLayer: "headline",
+      selectedChange: proposal.changes[1].id,
+    });
+  });
+
   it("publishes a proposal and its focus as one coherent update", () => {
     const store = createAppStore();
     const snapshots: ReturnType<typeof store.getSnapshot>[] = [];
