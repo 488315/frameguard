@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 const screenshotDir = "artifacts/proposal-workflow";
 const browserErrors = new WeakMap<Page, string[]>();
@@ -190,4 +191,26 @@ test("layers remain available in a 200-percent-zoom equivalent layout", async ({
     path: `${screenshotDir}/layers-narrow-640x900.png`,
     fullPage: true,
   });
+});
+
+test("active Layers review has no serious accessibility violations", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await openComposer(page);
+  await fillBaseProposal(page, "Accessible Layers review");
+  await addImageChange(page);
+  await page.getByRole("button", { name: "Submit proposal" }).click();
+  await expect(
+    page.getByRole("listbox", { name: "Document layers" }),
+  ).toBeVisible();
+
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  const serious = results.violations.filter(
+    (violation) =>
+      violation.impact === "serious" || violation.impact === "critical",
+  );
+  expect(serious).toEqual([]);
 });

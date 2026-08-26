@@ -196,7 +196,7 @@ select:focus-visible {
   border-top: 1px solid #ded7ca;
 }
 .change-values dt {
-  color: #777066;
+  color: #625d55;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -578,7 +578,7 @@ select:focus-visible {
   box-shadow: 0 0 0 1px #4e745133;
 }
 .canvas-frame.current .canvas-label span:first-child {
-  color: #746d63;
+  color: #625d55;
 }
 .canvas-frame.proposed .canvas-label span:first-child {
   color: #3f6743;
