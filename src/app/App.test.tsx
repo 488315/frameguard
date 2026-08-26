@@ -130,8 +130,10 @@ test("marks only the layer changed by the committed proposal", async () => {
     screen.getByRole("button", { name: "Approve Headline reflow" }),
   );
   await user.click(screen.getByRole("button", { name: "Apply 1 change" }));
-  expect(
-    screen.getByRole("button", { name: "Headline, modified" }),
-  ).toBeVisible();
+  const modifiedHeadline = screen.getByRole("button", {
+    name: "Headline, modified",
+  });
+  expect(modifiedHeadline).toBeVisible();
+  expect(modifiedHeadline.querySelector("i")).not.toBeNull();
   expect(screen.getByRole("button", { name: "Image" })).toBeVisible();
 });
