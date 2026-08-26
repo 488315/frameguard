@@ -348,6 +348,57 @@ test("synchronizes change selection back to Layers and the preview", async () =>
   expect(screen.getByLabelText("proposed crop boundary")).toBeVisible();
 });
 
+test("keeps protected layers inspectable while mutation remains blocked", async () => {
+  const user = userEvent.setup();
+  const store = createAppStore();
+  const proposal = store.propose("Review the protected brand boundary");
+  const logoChange = proposal.changes.find(
+    (change) => change.target === "logo",
+  )!;
+  const committed = store.getSnapshot().document;
+  render(<App store={store} />);
+
+  await user.click(
+    screen.getByRole("option", {
+      name: "Logo, protected, 1 proposed change",
+    }),
+  );
+
+  expect(
+    screen.getByRole("option", {
+      name: "Logo, selected, protected, 1 proposed change",
+    }),
+  ).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByLabelText("Selected Logo layer")).toBeVisible();
+  expect(screen.getByText(/Logo is protected/)).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Approve Logo change" }),
+  ).not.toBeInTheDocument();
+  expect(() => store.setApproval(logoChange.id, true)).toThrow(
+    "Logo is protected",
+  );
+  expect(store.getSnapshot().document).toEqual(committed);
+});
+
+test("preserves the full accessible name for long imported layer labels", () => {
+  const store = createAppStore();
+  const document = createInitialDocument();
+  document.elements.body.label =
+    "International Campaign Headline Supporting Description";
+  store.importLayout(JSON.stringify(document));
+  render(<App store={store} />);
+
+  const layer = screen.getByRole("option", {
+    name: "International Campaign Headline Supporting Description, no proposed changes",
+  });
+  expect(layer).toBeVisible();
+  expect(
+    within(layer).getByTitle(
+      "International Campaign Headline Supporting Description",
+    ),
+  ).toBeVisible();
+});
+
 test("reviews individual changes, applies only approval, records history, and undoes", async () => {
   const user = userEvent.setup();
   const { store } = activeStore();
