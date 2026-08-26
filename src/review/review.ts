@@ -8,6 +8,8 @@ import {
   applyChange as applyRegisteredChange,
   deriveProposalPreview,
   materializeChange,
+  operationMetadata,
+  operationsForTarget,
 } from "./operations";
 import {
   ProposalValidationError,
@@ -133,9 +135,10 @@ function validateProposalInput(input: unknown): asserts input is ProposalInput {
         });
         return;
       }
-      if (
-        !elementIds.includes(rawChange.target as (typeof elementIds)[number])
-      ) {
+      const targetSupported = elementIds.includes(
+        rawChange.target as (typeof elementIds)[number],
+      );
+      if (!targetSupported) {
         issues.push({
           path: `${path}.target`,
           message: "Target is not supported",
@@ -165,14 +168,28 @@ function validateProposalInput(input: unknown): asserts input is ProposalInput {
         });
         return;
       }
-      if (
-        !operationKinds.includes(
-          rawChange.operation.kind as (typeof operationKinds)[number],
-        )
-      ) {
+      const operationSupported = operationKinds.includes(
+        rawChange.operation.kind as (typeof operationKinds)[number],
+      );
+      if (!operationSupported) {
         issues.push({
           path: `${path}.operation.kind`,
           message: "Operation is not supported",
+        });
+      }
+      if (
+        targetSupported &&
+        operationSupported &&
+        !operationsForTarget(
+          rawChange.target as (typeof elementIds)[number],
+        ).some((operation) => operation.kind === rawChange.operation.kind)
+      ) {
+        const operation = operationMetadata.find(
+          (candidate) => candidate.kind === rawChange.operation.kind,
+        );
+        issues.push({
+          path: `${path}.operation.kind`,
+          message: `${operation?.label ?? "Operation"} is not supported for ${String(rawChange.target)}`,
         });
       }
       if (

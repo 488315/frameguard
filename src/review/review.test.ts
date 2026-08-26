@@ -135,7 +135,7 @@ describe("review authority", () => {
     ).toThrow("Operation is not supported");
 
     const mismatch = createReviewAuthority();
-    expect(() =>
+    try {
       mismatch.createProposal({
         ...proposalInput(),
         changes: [
@@ -145,8 +145,17 @@ describe("review authority", () => {
             rationale: "Wrong target",
           },
         ],
-      }),
-    ).toThrow("not supported for image");
+      });
+      throw new Error("Expected target-operation validation to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProposalValidationError);
+      expect((error as ProposalValidationError).issues).toEqual([
+        {
+          path: "changes.0.operation.kind",
+          message: "Replace text is not supported for image",
+        },
+      ]);
+    }
     expect(mismatch.getState().document).toBeNull();
   });
 
