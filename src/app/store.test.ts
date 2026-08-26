@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createInitialDocument } from "../editor/document";
 import { createAppStore } from "./store";
 
 describe("app store review focus", () => {
@@ -77,6 +78,49 @@ describe("app store review focus", () => {
       proposal: null,
       selectedChange: null,
       document: { revision: 2 },
+    });
+  });
+
+  it("imports validated content and leaves failed imports empty", () => {
+    const failed = createAppStore();
+    expect(() => failed.importLayout('{"revision":1}')).toThrow(
+      "complete FrameGuard document",
+    );
+    expect(failed.getSnapshot()).toMatchObject({
+      document: null,
+      proposal: null,
+      selectedLayer: null,
+    });
+
+    const store = createAppStore();
+    store.importLayout(JSON.stringify(createInitialDocument()));
+    expect(store.getSnapshot()).toMatchObject({
+      document: {
+        revision: 1,
+        elements: {
+          logo: { protected: true },
+          legal: { protected: true },
+        },
+      },
+      proposal: null,
+      selectedLayer: null,
+    });
+  });
+
+  it("resets all transient and committed workspace state", () => {
+    const store = createAppStore();
+    store.propose("adapt");
+    store.setApproval("headline-reflow", true);
+    store.authorizeAgentApply();
+    store.resetWorkspace();
+    expect(store.getSnapshot()).toMatchObject({
+      document: null,
+      proposal: null,
+      canUndo: false,
+      modifiedElements: [],
+      selectedLayer: null,
+      selectedChange: null,
+      agentApplyAuthorized: false,
     });
   });
 });
