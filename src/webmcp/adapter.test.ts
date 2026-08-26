@@ -37,6 +37,28 @@ describe("WebMCP adapter", () => {
     expect(store.getSnapshot().activity?.tool).toBe("propose_adaptation");
   });
 
+  it("rejects undeclared fields and requires a human authorization before agent apply", async () => {
+    const store = createAppStore();
+    const staticTools = createStaticTools(store);
+    await expect(
+      staticTools
+        .find((tool) => tool.name === "inspect_document")!
+        .execute({ extra: true }),
+    ).rejects.toThrow("Unexpected input field");
+    await staticTools
+      .find((tool) => tool.name === "propose_adaptation")!
+      .execute({ objective: "Adapt" });
+    store.setApproval("headline-reflow", true);
+    const apply = createReviewTools(store).find(
+      (tool) => tool.name === "apply_approved_changes",
+    )!;
+    await expect(apply.execute({})).rejects.toThrow(
+      "Human authorization required",
+    );
+    store.authorizeAgentApply();
+    await expect(apply.execute({})).resolves.toBeDefined();
+  });
+
   it("registers static tools and lifecycle-removes review tools", async () => {
     const registered: Array<{ name: string; signal?: AbortSignal }> = [];
     document.modelContext = {

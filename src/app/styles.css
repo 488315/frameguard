@@ -14,6 +14,11 @@ button {
   font: inherit;
   color: inherit;
 }
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #292824;
+  outline-offset: 2px;
+}
 .topbar {
   height: 56px;
   background: #faf7ef;
@@ -154,7 +159,7 @@ button {
   border: 0;
   border-top: 1px solid #ddd7cb;
   height: 8%;
-  font-size: 5px;
+  font-size: 8px;
 }
 .launch-copy {
   height: 46%;
@@ -171,7 +176,7 @@ button {
   display: block;
 }
 .launch-copy > p:not(.issue) {
-  font-size: 7px;
+  font-size: 10px;
   max-width: 36ch;
 }
 .launch-copy button {
@@ -182,7 +187,7 @@ button {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: 7px;
+  font-size: 10px;
 }
 .image-field {
   height: 36%;

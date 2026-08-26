@@ -182,9 +182,17 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
             <button
               className="apply"
               disabled={!state.proposal || selected === 0}
-              onClick={() => store.apply()}
+              onClick={() => store.applyFromUi()}
             >
               <Check /> Apply {selected || 2} changes
+            </button>
+            <button
+              disabled={!state.proposal || selected === 0}
+              onClick={() => store.authorizeAgentApply()}
+            >
+              {state.agentApplyAuthorized
+                ? "Agent apply allowed"
+                : "Allow agent apply"}
             </button>
             <button disabled={!state.canUndo} onClick={() => store.undo()}>
               Undo

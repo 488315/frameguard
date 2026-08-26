@@ -21,6 +21,17 @@ function assertObject(
   }
 }
 
+function assertExactKeys(input: Record<string, unknown>, allowed: string[]) {
+  const unexpected = Object.keys(input).filter((key) => !allowed.includes(key));
+  if (unexpected.length)
+    throw new Error(`Unexpected input field: ${unexpected[0]}`);
+}
+
+const afterPaint = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+
 export function createStaticTools(store: AppStore): WebMcpTool[] {
   return [
     {
@@ -36,6 +47,7 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
       annotations: { readOnlyHint: true },
       async execute(input) {
         assertObject(input);
+        assertExactKeys(input, ["canvas"]);
         const canvas = input.canvas;
         if (
           canvas !== undefined &&
@@ -52,6 +64,7 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
           "inspect_document",
           `Inspected ${canvas ?? "both canvases"}`,
         );
+        await afterPaint();
         return textResult({
           revision: state.document.revision,
           layouts,
@@ -81,10 +94,13 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
       },
       async execute(input) {
         assertObject(input);
+        assertExactKeys(input, ["objective"]);
         if (typeof input.objective !== "string" || !input.objective.trim()) {
           throw new Error("objective must be a non-empty string");
         }
-        return textResult(store.propose(input.objective));
+        const result = store.propose(input.objective);
+        await afterPaint();
+        return textResult(result);
       },
     },
     {
@@ -95,7 +111,10 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
       inputSchema: emptySchema,
       async execute(input) {
         assertObject(input);
-        return textResult(store.undo());
+        assertExactKeys(input, []);
+        const result = store.undo();
+        await afterPaint();
+        return textResult(result);
       },
     },
     {
@@ -107,8 +126,10 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
       annotations: { readOnlyHint: true },
       async execute(input) {
         assertObject(input);
+        assertExactKeys(input, []);
         const receipt = serializeReceipt(store);
         store.record("export_review_receipt", "Receipt returned locally");
+        await afterPaint();
         return { content: [{ type: "text", text: receipt }] };
       },
     },
@@ -136,6 +157,7 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
       },
       async execute(input) {
         assertObject(input);
+        assertExactKeys(input, ["changeId", "approved"]);
         if (
           input.changeId !== "headline-reflow" &&
           input.changeId !== "image-crop"
@@ -145,7 +167,9 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
         if (typeof input.approved !== "boolean") {
           throw new Error("approved must be a boolean");
         }
-        return textResult(store.setApproval(input.changeId, input.approved));
+        const result = store.setApproval(input.changeId, input.approved);
+        await afterPaint();
+        return textResult(result);
       },
     },
     {
@@ -156,7 +180,10 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
       inputSchema: emptySchema,
       async execute(input) {
         assertObject(input);
-        return textResult(store.apply());
+        assertExactKeys(input, []);
+        const result = store.applyFromAgent();
+        await afterPaint();
+        return textResult(result);
       },
     },
     {
@@ -167,7 +194,10 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
       inputSchema: emptySchema,
       async execute(input) {
         assertObject(input);
-        return textResult(store.reject());
+        assertExactKeys(input, []);
+        const result = store.reject();
+        await afterPaint();
+        return textResult(result);
       },
     },
   ];
@@ -182,13 +212,18 @@ export function installWebMcp(store: AppStore): () => void {
   const permanent = new AbortController();
   let reviewController: AbortController | null = null;
   let hadProposal = false;
+  let disposed = false;
   const register = (tool: WebMcpTool, signal: AbortSignal) =>
     context.registerTool(tool, { signal });
   Promise.all(
     createStaticTools(store).map((tool) => register(tool, permanent.signal)),
   )
-    .then(() => store.setWebMcpAvailable(true))
+    .then(() => {
+      if (!disposed) store.setWebMcpAvailable(true);
+    })
     .catch((error: unknown) => {
+      permanent.abort();
+      if (disposed) return;
       store.setWebMcpAvailable(false);
       store.record(
         "WebMCP registration",
@@ -206,19 +241,23 @@ export function installWebMcp(store: AppStore): () => void {
       const signal = reviewController.signal;
       void Promise.all(
         createReviewTools(store).map((tool) => register(tool, signal)),
-      ).catch((error: unknown) =>
+      ).catch((error: unknown) => {
+        reviewController?.abort();
+        if (disposed) return;
+        store.setWebMcpAvailable(false);
         store.record(
           "WebMCP registration",
           error instanceof Error
             ? error.message
             : "Review tool registration failed",
-        ),
-      );
+        );
+      });
     }
   };
   const unsubscribe = store.subscribe(syncReviewTools);
   syncReviewTools();
   return () => {
+    disposed = true;
     unsubscribe();
     permanent.abort();
     reviewController?.abort();

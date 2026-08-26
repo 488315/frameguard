@@ -10,19 +10,40 @@ export interface Activity {
 export interface AppSnapshot extends ReviewState {
   activity: Activity | null;
   webMcpAvailable: boolean;
+  agentApplyAuthorized: boolean;
+}
+
+function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
+  Object.freeze(snapshot.document.elements);
+  Object.values(snapshot.document.layouts).forEach(Object.freeze);
+  Object.freeze(snapshot.document.layouts);
+  Object.freeze(snapshot.document);
+  snapshot.proposal?.changes.forEach(Object.freeze);
+  if (snapshot.proposal) {
+    Object.freeze(snapshot.proposal.changes);
+    Object.freeze(snapshot.proposal);
+  }
+  return Object.freeze(snapshot);
 }
 export function createAppStore() {
   const review = createReviewAuthority();
   let activity: Activity | null = null;
   let webMcpAvailable = false;
-  let snapshot: AppSnapshot = {
+  let agentApplyAuthorized = false;
+  let snapshot: AppSnapshot = freezeSnapshot({
     ...review.getState(),
     activity,
     webMcpAvailable,
-  };
+    agentApplyAuthorized,
+  });
   const listeners = new Set<() => void>();
   const emit = () => {
-    snapshot = { ...review.getState(), activity, webMcpAvailable };
+    snapshot = freezeSnapshot({
+      ...review.getState(),
+      activity,
+      webMcpAvailable,
+      agentApplyAuthorized,
+    });
     listeners.forEach((listener) => listener());
   };
   const run = <T>(tool: string, action: () => T): T => {
@@ -57,15 +78,35 @@ export function createAppStore() {
       return run("propose_adaptation", () => review.propose(objective));
     },
     setApproval(id: ChangeId, approved: boolean) {
+      agentApplyAuthorized = false;
       return run("set_change_approval", () => review.setApproval(id, approved));
     },
-    apply() {
+    authorizeAgentApply() {
+      if (!review.getState().proposal) throw new Error("No active proposal");
+      agentApplyAuthorized = true;
+      activity = {
+        tool: "human_authorization",
+        result: "Agent apply authorized",
+      };
+      emit();
+    },
+    applyFromAgent() {
+      if (!agentApplyAuthorized) {
+        throw new Error("Human authorization required in the FrameGuard UI");
+      }
+      agentApplyAuthorized = false;
+      return run("apply_approved_changes", () => review.apply());
+    },
+    applyFromUi() {
+      agentApplyAuthorized = false;
       return run("apply_approved_changes", () => review.apply());
     },
     reject() {
+      agentApplyAuthorized = false;
       return run("reject_change_set", () => review.reject());
     },
     undo() {
+      agentApplyAuthorized = false;
       return run("undo_last_change_set", () => review.undo());
     },
     record(tool: string, result: string) {
