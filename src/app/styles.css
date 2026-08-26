@@ -33,7 +33,8 @@ button {
 }
 .topbar p {
   font:
-    500 13px Georgia, serif;
+    500 13px Georgia,
+    serif;
 }
 .revision {
   text-align: right;
