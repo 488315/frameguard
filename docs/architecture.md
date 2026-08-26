@@ -8,7 +8,8 @@ FrameGuard has at most one committed document and one mutation authority. The br
 - `src/review/models.ts` defines the typed proposal, operation, decision, and finalized-review contracts.
 - `src/review/operations.ts` is the single operation registry. It owns valid target/operation combinations, display metadata, value validation, before-value derivation, protection checks, preview, and apply behavior.
 - `src/review/review.ts` owns the nullable workspace lifecycle, proposal creation, approval selection, base-revision validation, atomic apply, rejection, finalized history, and one-level document undo.
-- `src/app/store.ts` is the observable production interface shared by React and WebMCP. It owns UI activity, synchronized layer/change focus, WebMCP availability, and the one-use human authorization for agent apply.
+- `src/app/store.ts` is the observable production interface shared by React and WebMCP. It owns UI activity, canonical synchronized layer/change focus, WebMCP availability, and the one-use human authorization for agent apply.
+- `src/app/layers.ts` derives navigator rows and unresolved proposal counts from committed document elements and the active proposal. It does not own durable state or protection policy.
 - `src/webmcp` declares exact browser tool schemas, validates all runtime inputs, and delegates every operation to the store. Review-only registrations use one generation-scoped `AbortController` per active proposal, and availability requires both static and currently required review tools to register successfully.
 - `src/export` deterministically serializes the committed document, audit, and finalized review history. The active draft proposal is excluded.
 
@@ -30,6 +31,11 @@ is derived from the committed document and selected active change. Only
 `ReviewAuthority.apply()` can commit operations, and it commits a fully prepared
 clone once all checks succeed.
 
+Layer and change navigation share the store selection. Selecting a layer resolves
+its first unresolved related change, or clears change focus when none exists.
+Selecting a change updates the associated layer. The Layers navigator, inspector,
+and real preview element outlines render from that same snapshot.
+
 ## Invariants
 
 - Logo and Legal are protected in the editor document.
@@ -37,6 +43,9 @@ clone once all checks succeed.
 - Invalid imports fail before the review authority is called, so partial documents and weakened protection never become active.
 - A proposal records its base revision. Apply fails before mutation when that revision is stale.
 - Blocked changes remain visible but cannot be selected or applied.
+- A Layers modification indicator means at least one related change remains pending. Approving or rejecting the final pending change removes the indicator immediately.
+- Protected layers remain selectable for inspection. Protection is derived from the committed document and enforced again by the operation registry during apply.
+- The imported document contract currently contains exactly six reviewable elements. The navigator is internally scrollable and keeps canonical selection visible, but arbitrary layer creation is outside the current document schema.
 - Proposal and change IDs are generated per proposal generation; review-only WebMCP schemas contain only IDs from the active generation and old registrations are aborted.
 - Published store snapshots freeze nested documents, operations, proposals, and finalized history so consumers cannot mutate authority-owned state.
 - Apply clones the committed document, performs selected allowed edits on the clone, then commits once.
