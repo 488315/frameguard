@@ -62,6 +62,16 @@ describe("review authority", () => {
     expect(review.getState().document.revision).toBe(2);
   });
 
+  it("reports only layers changed by the committed change set", () => {
+    const review = createReviewAuthority();
+    expect(review.getState().modifiedElements).toEqual([]);
+    review.propose("adapt");
+    review.setApproval("headline-reflow", true);
+    expect(review.apply().modifiedElements).toEqual(["headline"]);
+    review.undo();
+    expect(review.getState().modifiedElements).toEqual([]);
+  });
+
   it("does not mutate with zero approvals or a stale base revision", () => {
     const empty = createReviewAuthority();
     empty.propose("adapt");
