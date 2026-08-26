@@ -5,7 +5,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { createAppStore, type AppStore } from "./store";
+import { createAppStore, type Activity, type AppStore } from "./store";
 import { installWebMcp } from "../webmcp/adapter";
 import {
   LayerRail,
@@ -22,15 +22,16 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{
-    tone: "working" | "success" | "error";
+    tone: "working" | "error";
     text: string;
+    activity: Activity | null;
   } | null>(null);
   useEffect(() => installWebMcp(store), [store]);
   const run = useCallback(
     (label: string, action: () => unknown) => {
       if (busy) return;
       setBusy(true);
-      setNotice({ tone: "working", text: `${label}…` });
+      setNotice({ tone: "working", text: `${label}…`, activity: state.activity });
       void Promise.resolve()
         .then(action)
         .then(() => {
@@ -40,12 +41,18 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
           setNotice({
             tone: "error",
             text: error instanceof Error ? error.message : `${label} failed`,
+            activity: store.getSnapshot().activity,
           });
         })
         .finally(() => setBusy(false));
     },
-    [busy],
+    [busy, state.activity, store],
   );
+  const visibleNotice =
+    notice &&
+    (notice.tone === "working" || notice.activity === state.activity)
+      ? notice
+      : null;
   return (
     <main aria-busy={busy}>
       <ReviewHeader state={state} store={store} run={run} busy={busy} />
@@ -54,12 +61,15 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
         <ReviewWorkspace state={state} />
         <ProposalInspector state={state} store={store} run={run} busy={busy} />
       </div>
-      <footer className={`activity ${notice?.tone ?? ""}`} aria-live="polite">
+      <footer
+        className={`activity ${visibleNotice?.tone ?? ""}`}
+        aria-live="polite"
+      >
         <span>ACTIVITY</span>
-        <b>{notice?.text ?? state.activity?.tool ?? "Ready for review"}</b>
+        <b>{visibleNotice?.text ?? state.activity?.tool ?? "Ready for review"}</b>
         <p>
-          {notice
-            ? notice.tone === "error"
+          {visibleNotice
+            ? visibleNotice.tone === "error"
               ? "The committed document was not changed."
               : "State synchronized across the workspace."
             : (state.activity?.result ?? "No tool calls yet")}
