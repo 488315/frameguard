@@ -9,12 +9,8 @@ import {
 } from "react";
 import { createAppStore, type Activity, type AppStore } from "./store";
 import { installWebMcp } from "../webmcp/adapter";
-import {
-  LayerRail,
-  ProposalInspector,
-  ReviewHeader,
-  ReviewWorkspace,
-} from "./components";
+import { ProposalInspector, ReviewHeader, ReviewWorkspace } from "./components";
+import { LayerRail } from "./LayerRail";
 
 export function App({ store: suppliedStore }: { store?: AppStore }) {
   const store = useMemo(
