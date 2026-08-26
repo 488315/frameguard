@@ -100,4 +100,19 @@ describe("review authority", () => {
     expect(review.undo()).toEqual({ changed: true, document: initial });
     expect(review.undo().changed).toBe(false);
   });
+
+  it("keeps document protection outside the proposal lifecycle", () => {
+    const review = createReviewAuthority();
+    review.propose("adapt");
+    review.reject();
+    expect(review.getState()).toMatchObject({
+      proposal: null,
+      document: {
+        elements: {
+          logo: { protected: true },
+          legal: { protected: true },
+        },
+      },
+    });
+  });
 });

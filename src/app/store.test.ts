@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { createAppStore } from "./store";
 
 describe("app store review focus", () => {
+  it("starts with no active proposal or proposal selection", () => {
+    const state = createAppStore().getSnapshot();
+    expect(state.proposal).toBeNull();
+    expect(state.selectedChange).toBeNull();
+    expect(state.canUndo).toBe(false);
+    expect(state.document.elements.logo.protected).toBe(true);
+    expect(state.document.elements.legal.protected).toBe(true);
+  });
+
   it("selects layers and focuses their proposal change", () => {
     const store = createAppStore();
     store.propose("adapt");

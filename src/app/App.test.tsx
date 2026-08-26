@@ -4,10 +4,18 @@ import { expect, test } from "vitest";
 import { App } from "./App";
 import { createAppStore } from "./store";
 
-test("renders the application shell", () => {
+test("renders the empty review state with previews and disabled actions", () => {
   render(<App />);
   expect(screen.getByRole("main")).toHaveTextContent("FrameGuard");
   expect(screen.getByText("Nothing changes without approval.")).toBeVisible();
+  expect(screen.getByText("No active proposal.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Create demo proposal" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Reject all" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Apply 0 changes" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Allow agent apply once" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+  expect(screen.getByLabelText("desktop canvas")).toBeVisible();
+  expect(screen.getByLabelText("mobile canvas")).toBeVisible();
   expect(screen.getByText(/WebMCP unavailable/)).toBeVisible();
   expect(screen.getByRole("button", { name: "Logo, protected" })).toBeVisible();
 });
@@ -61,6 +69,8 @@ test("visibly reflects proposal, approval, apply, and undo", async () => {
   await user.click(screen.getByRole("button", { name: "Approve Image crop" }));
   await user.click(screen.getByRole("button", { name: "Apply 2 changes" }));
   expect(screen.getByText("REVISION 02")).toBeVisible();
+  expect(screen.getByText("No active proposal.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Apply 0 changes" })).toBeDisabled();
   await user.click(screen.getByRole("button", { name: "Undo" }));
   expect(screen.getByText("REVISION 01")).toBeVisible();
 });
@@ -72,7 +82,9 @@ test("reject removes the proposal and preserves committed revision", async () =>
     screen.getByRole("button", { name: "Create demo proposal" }),
   );
   await user.click(screen.getByRole("button", { name: "Reject all" }));
-  expect(screen.getByText("No active proposal")).toBeVisible();
+  expect(screen.getByText("No active proposal.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Reject all" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Apply 0 changes" })).toBeDisabled();
   expect(screen.getByText("REVISION 01")).toBeVisible();
 });
 
