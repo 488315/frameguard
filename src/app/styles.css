@@ -1080,6 +1080,121 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+@media (min-width: 1460px) and (max-width: 2199px) {
+  .workspace {
+    grid-template-columns: 190px minmax(0, 1fr) 380px;
+  }
+  .composer-field > span,
+  .composer-section-head,
+  .draft-change legend {
+    font-size: 11px;
+  }
+  .composer-field input,
+  .composer-field textarea,
+  .composer-field select {
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .field-error,
+  .composer-error,
+  .protected-draft,
+  .current-value p,
+  .add-change,
+  .composer-actions button,
+  .change-values dd {
+    font-size: 12px;
+  }
+  .current-value span,
+  .change-values dt,
+  .remove-change {
+    font-size: 10px;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  .topbar > p,
+  .stage-heading > p {
+    font-size: 15px;
+  }
+  .header-actions button,
+  .viewport-tools button,
+  .layer-label,
+  .workspace-empty-actions button {
+    font-size: 13px;
+  }
+  .header-actions > span,
+  .review-head > span,
+  .stage-heading div > span,
+  .layers-empty b {
+    font-size: 12px;
+  }
+  .layers-empty p,
+  .layer-no,
+  .stage-heading p,
+  .review-head > p,
+  .issue,
+  .canvas-label {
+    font-size: 11px;
+  }
+  .workspace-empty-card > p,
+  .empty p {
+    font-size: 14px;
+  }
+  .canvas header,
+  .canvas footer {
+    font-size: clamp(9px, 0.7vw, 12px);
+  }
+  .launch-copy > p:not(.issue),
+  .canvas-cta {
+    font-size: clamp(10px, 0.78vw, 13px);
+  }
+  .headline-overlay span,
+  .crop-guide span,
+  .blocked-vector {
+    font-size: 9px;
+  }
+  .change-focus {
+    grid-template-columns: 26px 1fr auto;
+    gap: 10px;
+    padding: 16px 15px 12px;
+  }
+  .change-no,
+  .decision,
+  .change-focus em,
+  .blocked-reason,
+  .change-decisions button {
+    font-size: 11px;
+  }
+  .change-focus b {
+    font-size: 18px;
+  }
+  .change-focus small {
+    font-size: 13px;
+  }
+  .change-decisions {
+    padding: 0 14px 13px;
+  }
+  .change-decisions button {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+  .blocked-reason {
+    padding: 0 15px 15px 51px;
+  }
+  .actions button,
+  .empty button {
+    min-height: 42px;
+    font-size: 12px;
+  }
+  .webmcp {
+    padding: 11px 15px;
+    font-size: 11px;
+  }
+  .activity {
+    grid-template-columns: 90px 280px 1fr;
+    font-size: 11px;
+  }
+}
 @media (min-width: 2200px) and (min-height: 1200px) {
   #root {
     zoom: 1.25;
