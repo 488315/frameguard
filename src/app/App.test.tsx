@@ -9,6 +9,37 @@ test("renders the application shell", () => {
   expect(screen.getByRole("main")).toHaveTextContent("FrameGuard");
   expect(screen.getByText("Nothing changes without approval.")).toBeVisible();
   expect(screen.getByText(/WebMCP unavailable/)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Logo, protected" })).toBeVisible();
+});
+
+test("selects layers and focuses the related proposal change", async () => {
+  const user = userEvent.setup();
+  render(<App store={createAppStore()} />);
+  await user.click(
+    screen.getByRole("button", { name: "Create demo proposal" }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Image, proposal affected" }),
+  );
+  expect(
+    screen.getByRole("button", { name: "Inspect Image crop" }),
+  ).toHaveAttribute("aria-current", "true");
+});
+
+test("rejects one proposed change without changing the committed revision", async () => {
+  const user = userEvent.setup();
+  render(<App store={createAppStore()} />);
+  await user.click(
+    screen.getByRole("button", { name: "Create demo proposal" }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Reject Headline reflow" }),
+  );
+  expect(screen.getByText("Rejected", { selector: "span" })).toBeVisible();
+  expect(screen.getByText("REVISION 01")).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Apply 0 changes" }),
+  ).toBeDisabled();
 });
 
 test("visibly reflects proposal, approval, apply, and undo", async () => {
@@ -18,10 +49,11 @@ test("visibly reflects proposal, approval, apply, and undo", async () => {
   await user.click(
     screen.getByRole("button", { name: "Create demo proposal" }),
   );
-  expect(screen.getByText("Logo move blocked")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Inspect Logo move" })).toBeVisible();
+  expect(screen.getByText("Blocked", { selector: "span" })).toBeVisible();
   expect(screen.getByLabelText("headline boundaries")).toBeVisible();
-  await user.click(screen.getByLabelText("Approve Headline reflow"));
-  await user.click(screen.getByLabelText("Approve Image crop"));
+  await user.click(screen.getByRole("button", { name: "Approve Headline reflow" }));
+  await user.click(screen.getByRole("button", { name: "Approve Image crop" }));
   await user.click(screen.getByRole("button", { name: "Apply 2 changes" }));
   expect(screen.getByText("REVISION 02")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Undo" }));
@@ -34,7 +66,7 @@ test("reject removes the proposal and preserves committed revision", async () =>
   await user.click(
     screen.getByRole("button", { name: "Create demo proposal" }),
   );
-  await user.click(screen.getByRole("button", { name: /Reject/ }));
+  await user.click(screen.getByRole("button", { name: "Reject all" }));
   expect(screen.getByText("No active proposal")).toBeVisible();
   expect(screen.getByText("REVISION 01")).toBeVisible();
 });
