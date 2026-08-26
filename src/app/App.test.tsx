@@ -102,3 +102,18 @@ test("announces pending work and preserves state on failure", async () => {
     screen.getByText("The committed document was not changed."),
   ).toBeVisible();
 });
+
+test("shows activity recorded after a completed UI action", async () => {
+  const user = userEvent.setup();
+  const store = createAppStore();
+  render(<App store={store} />);
+  await user.click(
+    screen.getByRole("button", { name: "Create demo proposal" }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText("propose_adaptation")).toBeVisible(),
+  );
+  store.record("inspect_document", "Document inspected");
+  expect(screen.getByText("inspect_document")).toBeVisible();
+  expect(screen.getByText("Document inspected")).toBeVisible();
+});
