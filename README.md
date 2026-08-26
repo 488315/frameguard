@@ -2,6 +2,8 @@
 
 FrameGuard is a local, human-in-the-loop visual change-review workspace built with React, TypeScript, Vite, and WebMCP. An agent can inspect and propose an adaptation, but protected elements and committed canvas state remain under explicit human control.
 
+Live demo: https://488315.github.io/frameguard/
+
 ## Local development
 
 ```sh
@@ -50,4 +52,4 @@ npm test
 npm run build
 ```
 
-FrameGuard is a local demonstration. It does not transmit review data or require a server.
+FrameGuard runs entirely in the browser. It does not transmit review data or require an application server.
