@@ -66,17 +66,29 @@ export function ProposalComposer({
     requestAnimationFrame(() => fieldRefs.current[firstPath]?.focus());
   };
 
+  const clearError = (path: string) => {
+    setErrors((current) => {
+      if (!(path in current)) return current;
+      const next = { ...current };
+      delete next[path];
+      return next;
+    });
+  };
+
   const updateChange = (key: number, patch: Partial<DraftChange>) => {
     setChanges((current) =>
       current.map((change) =>
         change.key === key ? { ...change, ...patch } : change,
       ),
     );
+    if ("value" in patch) clearError(`changes.${key}.value`);
+    if ("rationale" in patch) clearError(`changes.${key}.rationale`);
   };
 
   const addChange = () => {
     const key = nextKey.current++;
     setChanges((current) => [...current, newDraftChange(key)]);
+    clearError("changes");
     setPendingFocus(`draft.${key}.target`);
   };
 
@@ -189,7 +201,10 @@ export function ProposalComposer({
             aria-describedby={describedBy("title")}
             maxLength={120}
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              clearError("title");
+            }}
           />
           {errorMessage("title") && (
             <small id="title-error" className="field-error">
@@ -209,7 +224,10 @@ export function ProposalComposer({
             maxLength={500}
             rows={3}
             value={objective}
-            onChange={(event) => setObjective(event.target.value)}
+            onChange={(event) => {
+              setObjective(event.target.value);
+              clearError("objective");
+            }}
           />
           {errorMessage("objective") && (
             <small id="objective-error" className="field-error">

@@ -94,6 +94,12 @@ test("creates a custom proposal through the accessible proposal composer", async
   expect(await screen.findByText("Title is required")).toBeVisible();
   expect(screen.getByLabelText("Proposal title")).toHaveFocus();
   await fillFirstDraft(user);
+  expect(screen.queryByText("Title is required")).not.toBeInTheDocument();
+  expect(screen.queryByText("Objective is required")).not.toBeInTheDocument();
+  expect(
+    screen.queryByText("Proposed value is required"),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Rationale is required")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Add change" }));
   await user.selectOptions(
     screen.getByLabelText("Layer for change 2"),
