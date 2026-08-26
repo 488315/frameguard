@@ -213,13 +213,21 @@ export function installWebMcp(store: AppStore): () => void {
   let reviewController: AbortController | null = null;
   let hadProposal = false;
   let disposed = false;
+  let staticReady = false;
+  let reviewReady = false;
+  const publishAvailability = () => {
+    if (disposed) return;
+    const needsReviewTools = Boolean(store.getSnapshot().proposal);
+    store.setWebMcpAvailable(staticReady && (!needsReviewTools || reviewReady));
+  };
   const register = (tool: WebMcpTool, signal: AbortSignal) =>
     context.registerTool(tool, { signal });
   Promise.all(
     createStaticTools(store).map((tool) => register(tool, permanent.signal)),
   )
     .then(() => {
-      if (!disposed) store.setWebMcpAvailable(true);
+      staticReady = true;
+      publishAvailability();
     })
     .catch((error: unknown) => {
       permanent.abort();
@@ -236,22 +244,32 @@ export function installWebMcp(store: AppStore): () => void {
     hadProposal = hasProposal;
     reviewController?.abort();
     reviewController = null;
+    reviewReady = false;
+    publishAvailability();
     if (hasProposal) {
-      reviewController = new AbortController();
-      const signal = reviewController.signal;
+      const controller = new AbortController();
+      reviewController = controller;
+      const signal = controller.signal;
       void Promise.all(
         createReviewTools(store).map((tool) => register(tool, signal)),
-      ).catch((error: unknown) => {
-        reviewController?.abort();
-        if (disposed) return;
-        store.setWebMcpAvailable(false);
-        store.record(
-          "WebMCP registration",
-          error instanceof Error
-            ? error.message
-            : "Review tool registration failed",
-        );
-      });
+      )
+        .then(() => {
+          if (disposed || reviewController !== controller) return;
+          reviewReady = true;
+          publishAvailability();
+        })
+        .catch((error: unknown) => {
+          controller.abort();
+          if (disposed || reviewController !== controller) return;
+          reviewReady = false;
+          publishAvailability();
+          store.record(
+            "WebMCP registration",
+            error instanceof Error
+              ? error.message
+              : "Review tool registration failed",
+          );
+        });
     }
   };
   const unsubscribe = store.subscribe(syncReviewTools);

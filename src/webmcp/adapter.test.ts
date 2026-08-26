@@ -79,4 +79,68 @@ describe("WebMCP adapter", () => {
     cleanup();
     delete document.modelContext;
   });
+
+  it("does not let a stale review failure abort a newer proposal generation", async () => {
+    const pending: Array<{
+      name: string;
+      signal?: AbortSignal;
+      reject: (error: Error) => void;
+    }> = [];
+    document.modelContext = {
+      registerTool: vi.fn((tool, options) => {
+        if (
+          !options?.signal ||
+          tool.name === "inspect_document" ||
+          tool.name === "propose_adaptation" ||
+          tool.name === "undo_last_change_set" ||
+          tool.name === "export_review_receipt"
+        )
+          return Promise.resolve();
+        return new Promise<void>((_resolve, reject) => {
+          pending.push({ name: tool.name, signal: options.signal, reject });
+        });
+      }),
+    };
+    const store = createAppStore();
+    const cleanup = installWebMcp(store);
+    store.propose("Proposal A");
+    const firstSignal = pending[0].signal!;
+    store.reject();
+    store.propose("Proposal B");
+    const secondSignal = pending[3].signal!;
+    pending[0].reject(new Error("stale registration failed"));
+    await Promise.resolve();
+    expect(firstSignal.aborted).toBe(true);
+    expect(secondSignal.aborted).toBe(false);
+    cleanup();
+    delete document.modelContext;
+  });
+
+  it("does not let late static success mask an active review failure", async () => {
+    let resolveStatic!: () => void;
+    const staticGate = new Promise<void>((resolve) => {
+      resolveStatic = resolve;
+    });
+    document.modelContext = {
+      registerTool: vi.fn((tool) =>
+        tool.name === "set_change_approval"
+          ? Promise.reject(new Error("review registration failed"))
+          : staticGate,
+      ),
+    };
+    const store = createAppStore();
+    const cleanup = installWebMcp(store);
+    store.propose("Adapt");
+    await vi.waitFor(() =>
+      expect(store.getSnapshot().activity?.result).toBe(
+        "review registration failed",
+      ),
+    );
+    resolveStatic();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.getSnapshot().webMcpAvailable).toBe(false);
+    cleanup();
+    delete document.modelContext;
+  });
 });
