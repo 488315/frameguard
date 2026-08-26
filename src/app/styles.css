@@ -645,47 +645,30 @@ select:focus-visible {
   padding: 12% 10%;
 }
 .mobile .launch-copy h2 {
-  font-size: clamp(20px, 2vw, 29px);
+  font-size: clamp(18px, 12cqw, 28px);
   margin: 12% 0 8%;
+}
+.canvas-frame.mobile {
+  container-type: inline-size;
+}
+.headline-preview-label {
+  display: block;
+  width: fit-content;
+  margin-top: 6%;
+  padding: 2px 0 2px 6px;
+  border-left: 2px solid #4e7451;
+  color: #3f6743;
+  font-size: clamp(8px, 4.5cqw, 10px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.headline-preview-label + h2 {
+  margin-top: 5%;
 }
 .mobile .image-field {
   height: 28%;
-}
-.headline-overlay {
-  position: absolute;
-  inset: 24% 7% auto;
-  height: 43%;
-  pointer-events: none;
-}
-.headline-overlay i {
-  position: absolute;
-  left: 0;
-  right: 0;
-  border: 1px solid;
-  height: 40%;
-}
-.headline-overlay .old {
-  top: 0;
-  border-color: #c9432c;
-}
-.headline-overlay .new {
-  bottom: 0;
-  border-color: #4e7451;
-}
-.headline-overlay span {
-  position: absolute;
-  right: 0;
-  padding: 1px 3px;
-  background: #fffdf7;
-  font-size: 7px;
-}
-.headline-overlay span:first-child {
-  top: -9px;
-  color: #a33625;
-}
-.headline-overlay span:nth-of-type(2) {
-  bottom: -9px;
-  color: #3f6743;
 }
 .crop-guide {
   position: absolute;
@@ -1148,7 +1131,6 @@ select:focus-visible {
   .canvas-cta {
     font-size: clamp(10px, 0.78vw, 13px);
   }
-  .headline-overlay span,
   .crop-guide span,
   .blocked-vector {
     font-size: 9px;

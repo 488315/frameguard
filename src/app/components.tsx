@@ -154,15 +154,12 @@ function LaunchCanvas({
             proposal &&
             selectedChange?.target === "headline" &&
             selectedChange.canvas === mode && (
-              <div
-                className="headline-overlay"
-                aria-label="headline boundaries"
+              <span
+                className="headline-preview-label"
+                aria-label="Proposed headline preview"
               >
-                <span>Current</span>
-                <i className="old" />
-                <span>Proposed</span>
-                <i className="new" />
-              </div>
+                Proposed preview
+              </span>
             )}
           <p>Objects and ideas for a slower, more deliberate season.</p>
           <span className="canvas-cta">
