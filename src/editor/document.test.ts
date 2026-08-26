@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createInitialDocument, auditDocument } from "./document";
+import {
+  createInitialDocument,
+  auditDocument,
+  parseImportedDocument,
+} from "./document";
 
 describe("editor document", () => {
   it("starts at revision one with protected logo and legal elements", () => {
@@ -26,5 +30,25 @@ describe("editor document", () => {
         message: "Both canvases share six elements",
       },
     ]);
+  });
+
+  it("parses a complete imported document without sharing input state", () => {
+    const source = createInitialDocument();
+    const imported = parseImportedDocument(JSON.stringify(source));
+    expect(imported).toEqual(source);
+    imported.layouts.mobile.headline = "changed";
+    expect(source.layouts.mobile.headline).not.toBe("changed");
+  });
+
+  it("rejects malformed, partial, and unprotected imports", () => {
+    expect(() => parseImportedDocument("not json")).toThrow("valid JSON");
+    expect(() => parseImportedDocument('{"revision":1}')).toThrow(
+      "complete FrameGuard document",
+    );
+    const unprotected = createInitialDocument();
+    unprotected.elements.logo.protected = false;
+    expect(() => parseImportedDocument(JSON.stringify(unprotected))).toThrow(
+      "Logo and Legal must remain protected",
+    );
   });
 });
