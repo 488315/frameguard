@@ -110,6 +110,11 @@ test("creates a custom proposal through the accessible proposal composer", async
   await user.click(screen.getByRole("button", { name: "Submit proposal" }));
 
   expect(screen.getByRole("heading", { name: "Custom review" })).toBeVisible();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Inspect Headline change" }),
+    ).toHaveFocus(),
+  );
   expect(
     screen.getAllByText(
       (_, element) => element?.textContent === "A custom\nmobile headline",
@@ -166,6 +171,11 @@ test("cancels drafts and supports add/remove without losing keyboard focus", asy
   expect(
     screen.getByRole("heading", { name: "No active proposal" }),
   ).toBeVisible();
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Create proposal" })[1],
+    ).toHaveFocus(),
+  );
 });
 
 test("shows protected targets during drafting and authority-blocks the result", async () => {

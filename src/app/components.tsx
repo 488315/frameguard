@@ -344,6 +344,16 @@ export function ProposalInspector({
     state.proposal?.changes.filter(
       (change) => change.applicable && change.decision === "approved",
     ).length ?? 0;
+  const focusAfterClose = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (composerOpen || !focusAfterClose.current) return;
+    document.querySelector<HTMLElement>(focusAfterClose.current)?.focus();
+    focusAfterClose.current = null;
+  }, [composerOpen, state.proposal]);
+  const closeAndFocus = (selector: string) => {
+    focusAfterClose.current = selector;
+    closeComposer();
+  };
   return (
     <aside
       className={`review ${!state.proposal ? "empty-workspace-review" : ""}`}
@@ -368,8 +378,8 @@ export function ProposalInspector({
         <ProposalComposer
           state={state}
           store={store}
-          onCancel={closeComposer}
-          onCreated={closeComposer}
+          onCancel={() => closeAndFocus(".empty button")}
+          onCreated={() => closeAndFocus(".change-focus")}
         />
       ) : !state.proposal ? (
         <div className="empty">
