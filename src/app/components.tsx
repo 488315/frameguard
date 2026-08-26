@@ -165,7 +165,7 @@ function LaunchCanvas({
             <i />
             <em />
           </div>
-          {selectedChange === "image-crop" && proposal && (
+          {mode === "mobile" && selectedChange === "image-crop" && proposal && (
             <div className="crop-guide" aria-label="proposed crop boundary">
               <span>Proposed crop</span>
             </div>

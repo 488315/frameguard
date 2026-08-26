@@ -24,6 +24,7 @@ test("selects layers and focuses the related proposal change", async () => {
   expect(
     screen.getByRole("button", { name: "Inspect Image crop" }),
   ).toHaveAttribute("aria-current", "true");
+  expect(screen.getAllByLabelText("proposed crop boundary")).toHaveLength(1);
 });
 
 test("rejects one proposed change without changing the committed revision", async () => {
@@ -49,10 +50,14 @@ test("visibly reflects proposal, approval, apply, and undo", async () => {
   await user.click(
     screen.getByRole("button", { name: "Create demo proposal" }),
   );
-  expect(screen.getByRole("button", { name: "Inspect Logo move" })).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Inspect Logo move" }),
+  ).toBeVisible();
   expect(screen.getByText("Blocked", { selector: "span" })).toBeVisible();
   expect(screen.getByLabelText("headline boundaries")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Approve Headline reflow" }));
+  await user.click(
+    screen.getByRole("button", { name: "Approve Headline reflow" }),
+  );
   await user.click(screen.getByRole("button", { name: "Approve Image crop" }));
   await user.click(screen.getByRole("button", { name: "Apply 2 changes" }));
   expect(screen.getByText("REVISION 02")).toBeVisible();

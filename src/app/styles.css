@@ -398,10 +398,10 @@ input:focus-visible {
 }
 .blocked-vector {
   position: absolute;
-  top: 8%;
+  top: 2.5%;
   left: 10%;
   right: 10%;
-  height: 10%;
+  height: 5%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -484,6 +484,11 @@ input:focus-visible {
 }
 .change-focus:hover {
   background: #eee8dc;
+}
+.change-focus:focus-visible,
+.layer-row:focus-visible {
+  outline-color: #a33625;
+  outline-offset: -3px;
 }
 .change-no {
   font-size: 9px;
