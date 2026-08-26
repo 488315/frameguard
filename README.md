@@ -39,6 +39,7 @@ The proposal appears immediately in the same interface. The attempted logo move 
 - `export_review_receipt`
 
 See [docs/evaluations.md](docs/evaluations.md) for deterministic evaluation cases.
+See [docs/architecture.md](docs/architecture.md) for ownership, invariants, and implementation boundaries.
 
 ## Quality gates
 
