@@ -101,6 +101,11 @@ test("announces pending work and preserves state on failure", async () => {
   expect(
     screen.getByText("The committed document was not changed."),
   ).toBeVisible();
+  store.record("inspect_document", "Document inspected after recovery");
+  await waitFor(() =>
+    expect(screen.getByText("inspect_document")).toBeVisible(),
+  );
+  expect(screen.getByText("Document inspected after recovery")).toBeVisible();
 });
 
 test("shows activity recorded after a completed UI action", async () => {
