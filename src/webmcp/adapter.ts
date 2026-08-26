@@ -57,6 +57,18 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
           throw new Error("canvas must be desktop or mobile");
         }
         const state = store.inspect();
+        if (!state.document) {
+          store.record("inspect_document", "No workspace loaded");
+          await afterPaint();
+          return textResult({
+            workspaceLoaded: false,
+            revision: null,
+            layouts: {},
+            protection: {},
+            activeProposal: null,
+            audit: [],
+          });
+        }
         const layouts = canvas
           ? { [canvas]: state.document.layouts[canvas] }
           : state.document.layouts;
@@ -66,6 +78,7 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
         );
         await afterPaint();
         return textResult({
+          workspaceLoaded: true,
           revision: state.document.revision,
           layouts,
           protection: Object.fromEntries(

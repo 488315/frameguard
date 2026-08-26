@@ -31,7 +31,7 @@ export function ReviewHeader({
       <div className="brand">
         <ShieldCheck weight="fill" /> FrameGuard
       </div>
-      <p>Still / Life · Mobile adaptation</p>
+      <p>{state.document ? "Still / Life · Mobile adaptation" : "Workspace"}</p>
       <div className="header-actions">
         <button
           disabled={!state.canUndo || busy}
@@ -40,14 +40,16 @@ export function ReviewHeader({
           <ArrowCounterClockwise /> Undo
         </button>
         <button
-          disabled={busy}
+          disabled={!state.document || busy}
           onClick={() =>
             run("Exporting revision", () => downloadReceipt(store))
           }
         >
           <DownloadSimple /> Export
         </button>
-        <span>REVISION {String(state.document.revision).padStart(2, "0")}</span>
+        <span>
+          REVISION {String(state.document?.revision ?? 1).padStart(2, "0")}
+        </span>
       </div>
     </header>
   );
@@ -66,8 +68,14 @@ export function LayerRail({
   return (
     <aside className="layers" aria-label="Document layers">
       <h1>Layers</h1>
-      <ul className="layer-list">
-        {Object.entries(state.document.elements).map(([rawId, item], index) => {
+      {!state.document ? (
+        <div className="layers-empty">
+          <b>No layers yet</b>
+          <p>Import a layout or create a proposal to get started.</p>
+        </div>
+      ) : (
+        <ul className="layer-list">
+          {Object.entries(state.document.elements).map(([rawId, item], index) => {
           const id = rawId as ElementId;
           const isAffected = affected.has(id);
           const selected = state.selectedLayer === id;
@@ -99,8 +107,9 @@ export function LayerRail({
               </button>
             </li>
           );
-        })}
-      </ul>
+          })}
+        </ul>
+      )}
     </aside>
   );
 }
@@ -187,9 +196,50 @@ function LaunchCanvas({
   );
 }
 
-export function ReviewWorkspace({ state }: { state: AppSnapshot }) {
+export function ReviewWorkspace({
+  state,
+  store,
+  run,
+  busy,
+}: {
+  state: AppSnapshot;
+  store: AppStore;
+  run: (label: string, action: () => unknown) => void;
+  busy: boolean;
+}) {
   const [zoom, setZoom] = React.useState(0);
   const zoomScale = [0.82, 1, 1.16][zoom + 1];
+  if (!state.document) {
+    return (
+      <section className="stage empty-stage" aria-label="Empty workspace">
+        <div className="stage-heading">
+          <div>
+            <p>WORKSPACE</p>
+            <h1>Desktop to mobile</h1>
+            <span>No active review</span>
+          </div>
+        </div>
+        <div className="workspace-empty-card">
+          <h2>Start your first review</h2>
+          <p>
+            You don’t have an active proposal or adaptation yet. Create a
+            proposal to begin a guided review, or import a layout to get started.
+          </p>
+          <button
+            disabled={busy}
+            onClick={() =>
+              run("Creating proposal", () =>
+                store.propose("Adapt the launch page for mobile"),
+              )
+            }
+          >
+            Create proposal
+          </button>
+          <button disabled>Import layout</button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="stage" aria-label="Visual comparison workspace">
       <div className="stage-heading">
@@ -286,7 +336,7 @@ export function ProposalInspector({
               )
             }
           >
-            Create demo proposal
+            Create proposal
           </button>
         </div>
       ) : (
@@ -310,7 +360,8 @@ export function ProposalInspector({
                   <b>{change.label}</b>
                   <small>{change.description}</small>
                   <em>
-                    {state.document.elements[change.target].label} ·{" "}
+                    {state.document?.elements[change.target].label ??
+                      change.target} ·{" "}
                     {change.kind}
                   </em>
                 </span>

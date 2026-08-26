@@ -43,8 +43,8 @@ describe("review authority", () => {
 
   it("tracks an explicit rejected decision without approving or mutating", () => {
     const review = createReviewAuthority();
-    const initial = review.getState().document;
     review.propose("adapt");
+    const initial = review.getState().document;
     const proposal = review.rejectChange("headline-reflow");
     expect(proposal.changes[0]).toMatchObject({
       approved: false,
@@ -68,7 +68,7 @@ describe("review authority", () => {
       },
     });
     expect(() => review.apply()).toThrow("No active proposal");
-    expect(review.getState().document.revision).toBe(2);
+    expect(review.getState().document?.revision).toBe(2);
   });
 
   it("reports only layers changed by the committed change set", () => {
@@ -111,21 +111,21 @@ describe("review authority", () => {
     const empty = createReviewAuthority();
     empty.propose("adapt");
     expect(() => empty.apply()).toThrow("Select at least one");
-    expect(empty.getState().document.revision).toBe(1);
+    expect(empty.getState().document?.revision).toBe(1);
     const stale = createReviewAuthority();
     stale.propose("adapt");
     stale.setApproval("headline-reflow", true);
     stale.__testOnlyAdvanceRevision();
     expect(() => stale.apply()).toThrow("stale");
-    expect(stale.getState().document.layouts.mobile.headline).not.toContain(
+    expect(stale.getState().document?.layouts.mobile.headline).not.toContain(
       "\n",
     );
   });
 
   it("rejects without mutation and undo restores the exact prior document", () => {
     const review = createReviewAuthority();
-    const initial = review.getState().document;
     review.propose("adapt");
+    const initial = review.getState().document;
     review.reject();
     expect(review.getState().document).toEqual(initial);
     expect(review.undo().changed).toBe(false);

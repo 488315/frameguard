@@ -61,7 +61,7 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
       <ReviewHeader state={state} store={store} run={run} busy={busy} />
       <div className="workspace">
         <LayerRail state={state} store={store} />
-        <ReviewWorkspace state={state} />
+        <ReviewWorkspace state={state} store={store} run={run} busy={busy} />
         <ProposalInspector state={state} store={store} run={run} busy={busy} />
       </div>
       <footer
@@ -70,14 +70,17 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
       >
         <span>ACTIVITY</span>
         <b>
-          {visibleNotice?.text ?? state.activity?.tool ?? "Ready for review"}
+          {visibleNotice?.text ??
+            state.activity?.tool ??
+            (state.document ? "Ready for review" : "No review loaded")}
         </b>
         <p>
           {visibleNotice
             ? visibleNotice.tone === "error"
               ? "The committed document was not changed."
               : "State synchronized across the workspace."
-            : (state.activity?.result ?? "No tool calls yet")}
+            : (state.activity?.result ??
+              (state.document ? "No tool calls yet" : "Workspace is empty"))}
         </p>
       </footer>
     </main>

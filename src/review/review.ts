@@ -24,7 +24,7 @@ export interface ChangeSet {
   changes: ReviewChange[];
 }
 export interface ReviewState {
-  document: EditorDocument;
+  document: EditorDocument | null;
   proposal: ChangeSet | null;
   canUndo: boolean;
   modifiedElements: ElementId[];
@@ -37,12 +37,12 @@ export interface ReviewAuthority {
   rejectChange(id: ChangeId): ChangeSet;
   apply(): ReviewState;
   reject(): ReviewState;
-  undo(): { changed: boolean; document: EditorDocument };
+  undo(): { changed: boolean; document: EditorDocument | null };
   __testOnlyAdvanceRevision(): void;
 }
 
 export function createReviewAuthority(): ReviewAuthority {
-  let document = createInitialDocument();
+  let document: EditorDocument | null = null;
   let proposal: ChangeSet | null = null;
   let modifiedElements: ElementId[] = [];
   let history: Array<{
@@ -50,7 +50,7 @@ export function createReviewAuthority(): ReviewAuthority {
     modifiedElements: ElementId[];
   }> = [];
   const state = (): ReviewState => ({
-    document: cloneDocument(document),
+    document: document ? cloneDocument(document) : null,
     proposal: proposal ? structuredClone(proposal) : null,
     canUndo: history.length > 0,
     modifiedElements: [...modifiedElements],
@@ -73,6 +73,7 @@ export function createReviewAuthority(): ReviewAuthority {
       "applicable" | "approved" | "rejected" | "blockedReason"
     >,
   ): ReviewChange => {
+    if (!document) throw new Error("No workspace loaded");
     const protectedTarget = document.elements[change.target].protected;
     return {
       ...change,
@@ -91,6 +92,7 @@ export function createReviewAuthority(): ReviewAuthority {
     propose(objective) {
       if (!objective.trim()) throw new Error("Objective must not be empty");
       if (proposal) throw new Error("An active proposal already exists");
+      document ??= createInitialDocument();
       proposal = {
         id: "mobile-adaptation-1",
         objective,
@@ -135,6 +137,7 @@ export function createReviewAuthority(): ReviewAuthority {
     },
     apply() {
       if (!proposal) throw new Error("No active proposal");
+      if (!document) throw new Error("No workspace loaded");
       if (proposal.baseRevision !== document.revision)
         throw new Error("Proposal is stale; inspect and propose again");
       const approved = proposal.changes.filter(
@@ -182,13 +185,18 @@ export function createReviewAuthority(): ReviewAuthority {
     },
     undo() {
       const prior = history.pop();
-      if (!prior) return { changed: false, document: cloneDocument(document) };
+      if (!prior)
+        return {
+          changed: false,
+          document: document ? cloneDocument(document) : null,
+        };
       document = prior.document;
       modifiedElements = prior.modifiedElements;
       proposal = null;
       return { changed: true, document: cloneDocument(document) };
     },
     __testOnlyAdvanceRevision() {
+      if (!document) throw new Error("No workspace loaded");
       document = { ...document, revision: document.revision + 1 };
     },
   };

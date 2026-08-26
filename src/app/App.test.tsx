@@ -4,14 +4,16 @@ import { expect, test } from "vitest";
 import { App } from "./App";
 import { createAppStore } from "./store";
 
-test("renders the empty review state with previews and disabled actions", () => {
+test("renders the empty workspace with no demo layers or canvases", () => {
   render(<App />);
   expect(screen.getByRole("main")).toHaveTextContent("FrameGuard");
-  expect(screen.getByText("Nothing changes without approval.")).toBeVisible();
+  expect(screen.getByText("Start your first review")).toBeVisible();
+  expect(screen.getByText("No layers yet")).toBeVisible();
   expect(screen.getByText("No active proposal.")).toBeVisible();
   expect(
-    screen.getByRole("button", { name: "Create demo proposal" }),
-  ).toBeEnabled();
+    screen.getAllByRole("button", { name: "Create proposal" }),
+  ).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "Import layout" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Reject all" })).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Apply 0 changes" }),
@@ -20,17 +22,18 @@ test("renders the empty review state with previews and disabled actions", () => 
     screen.getByRole("button", { name: "Allow agent apply once" }),
   ).toBeDisabled();
   expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
-  expect(screen.getByLabelText("desktop canvas")).toBeVisible();
-  expect(screen.getByLabelText("mobile canvas")).toBeVisible();
+  expect(screen.queryByLabelText("desktop canvas")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("mobile canvas")).not.toBeInTheDocument();
   expect(screen.getByText(/WebMCP unavailable/)).toBeVisible();
-  expect(screen.getByRole("button", { name: "Logo, protected" })).toBeVisible();
+  expect(screen.queryByText("Logo")).not.toBeInTheDocument();
+  expect(screen.getByText("No review loaded")).toBeVisible();
 });
 
 test("selects layers and focuses the related proposal change", async () => {
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   await user.click(
     screen.getByRole("button", { name: "Image, proposal affected" }),
@@ -45,7 +48,7 @@ test("rejects one proposed change without changing the committed revision", asyn
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   await user.click(
     screen.getByRole("button", { name: "Reject Headline reflow" }),
@@ -61,7 +64,7 @@ test("exposes rejection as a one-way decision with approval as its reversal", as
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   const reject = screen.getByRole("button", {
     name: "Reject Headline reflow",
@@ -80,7 +83,7 @@ test("visibly reflects proposal, approval, apply, and undo", async () => {
   const store = createAppStore();
   render(<App store={store} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   expect(
     screen.getByRole("button", { name: "Inspect Logo move" }),
@@ -105,7 +108,7 @@ test("reject removes the proposal and preserves committed revision", async () =>
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   await user.click(screen.getByRole("button", { name: "Reject all" }));
   expect(screen.getByText("No active proposal.")).toBeVisible();
@@ -119,7 +122,12 @@ test("reject removes the proposal and preserves committed revision", async () =>
 test("supports keyboard layer selection", async () => {
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
-  const imageLayer = screen.getByRole("button", { name: "Image" });
+  await user.click(
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
+  );
+  const imageLayer = screen.getByRole("button", {
+    name: "Image, proposal affected",
+  });
   imageLayer.focus();
   await user.keyboard("{Enter}");
   expect(imageLayer).toHaveAttribute("aria-current", "true");
@@ -131,7 +139,9 @@ test("announces pending work and preserves state on failure", async () => {
     throw new Error("Proposal service unavailable");
   };
   render(<App store={store} />);
-  fireEvent.click(screen.getByRole("button", { name: "Create demo proposal" }));
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
+  );
   expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
   expect(await screen.findByText("Proposal service unavailable")).toBeVisible();
   await waitFor(() =>
@@ -153,7 +163,7 @@ test("shows activity recorded after a completed UI action", async () => {
   const store = createAppStore();
   render(<App store={store} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   await waitFor(() =>
     expect(screen.getByText("propose_adaptation")).toBeVisible(),
@@ -169,7 +179,7 @@ test("marks only the layer changed by the committed proposal", async () => {
   const user = userEvent.setup();
   render(<App store={createAppStore()} />);
   await user.click(
-    screen.getByRole("button", { name: "Create demo proposal" }),
+    screen.getAllByRole("button", { name: "Create proposal" })[0],
   );
   await user.click(
     screen.getByRole("button", { name: "Approve Headline reflow" }),

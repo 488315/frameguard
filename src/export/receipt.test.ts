@@ -3,8 +3,16 @@ import { createAppStore } from "../app/store";
 import { auditDocument, createInitialDocument } from "../editor/document";
 import { serializeReceipt } from "./receipt";
 
+test("refuses to export an empty workspace", () => {
+  expect(() => serializeReceipt(createAppStore())).toThrow(
+    "No workspace loaded",
+  );
+});
+
 test("serializes a deterministic secret-free review receipt", () => {
   const store = createAppStore();
+  store.propose("adapt");
+  store.reject();
   const receipt = serializeReceipt(store);
   expect(JSON.parse(receipt)).toEqual({
     product: "FrameGuard",

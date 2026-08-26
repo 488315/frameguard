@@ -7,8 +7,8 @@ describe("app store review focus", () => {
     expect(state.proposal).toBeNull();
     expect(state.selectedChange).toBeNull();
     expect(state.canUndo).toBe(false);
-    expect(state.document.elements.logo.protected).toBe(true);
-    expect(state.document.elements.legal.protected).toBe(true);
+    expect(state.document).toBeNull();
+    expect(state.selectedLayer).toBeNull();
   });
 
   it("selects layers and focuses their proposal change", () => {
@@ -49,8 +49,8 @@ describe("app store review focus", () => {
 
   it("records an individual rejection without changing the document", () => {
     const store = createAppStore();
-    const initial = store.getSnapshot().document;
     store.propose("adapt");
+    const initial = store.getSnapshot().document;
     store.rejectChange("headline-reflow");
     expect(store.getSnapshot().proposal?.changes[0].rejected).toBe(true);
     expect(store.getSnapshot().document).toEqual(initial);

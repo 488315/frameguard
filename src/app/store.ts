@@ -12,16 +12,18 @@ export interface AppSnapshot extends ReviewState {
   activity: Activity | null;
   webMcpAvailable: boolean;
   agentApplyAuthorized: boolean;
-  selectedLayer: ElementId;
+  selectedLayer: ElementId | null;
   selectedChange: ChangeId | null;
 }
 
 function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
   Object.freeze(snapshot.modifiedElements);
-  Object.freeze(snapshot.document.elements);
-  Object.values(snapshot.document.layouts).forEach(Object.freeze);
-  Object.freeze(snapshot.document.layouts);
-  Object.freeze(snapshot.document);
+  if (snapshot.document) {
+    Object.freeze(snapshot.document.elements);
+    Object.values(snapshot.document.layouts).forEach(Object.freeze);
+    Object.freeze(snapshot.document.layouts);
+    Object.freeze(snapshot.document);
+  }
   snapshot.proposal?.changes.forEach(Object.freeze);
   if (snapshot.proposal) {
     Object.freeze(snapshot.proposal.changes);
@@ -34,7 +36,7 @@ export function createAppStore() {
   let activity: Activity | null = null;
   let webMcpAvailable = false;
   let agentApplyAuthorized = false;
-  let selectedLayer: ElementId = "headline";
+  let selectedLayer: ElementId | null = null;
   let selectedChange: ChangeId | null = null;
   let snapshot: AppSnapshot = freezeSnapshot({
     ...review.getState(),
