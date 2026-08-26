@@ -20,6 +20,25 @@ describe("review authority", () => {
     expect(() => review.setApproval("logo-move", true)).toThrow("protected");
   });
 
+  it("derives protected mutations from the authoritative layer model", () => {
+    const proposal = createReviewAuthority().propose("adapt");
+    expect(proposal.changes.find((change) => change.id === "logo-move")).toMatchObject({
+      target: "logo",
+      kind: "move",
+      applicable: false,
+      blockedReason: "Logo is protected",
+    });
+  });
+
+  it("tracks an explicit rejected decision without approving or mutating", () => {
+    const review = createReviewAuthority();
+    const initial = review.getState().document;
+    review.propose("adapt");
+    const proposal = review.rejectChange("headline-reflow");
+    expect(proposal.changes[0]).toMatchObject({ approved: false, rejected: true });
+    expect(review.getState().document).toEqual(initial);
+  });
+
   it("applies selected allowed changes atomically and does not apply twice", () => {
     const review = createReviewAuthority();
     review.propose("adapt");

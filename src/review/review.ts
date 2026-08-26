@@ -1,6 +1,7 @@
 import {
   cloneDocument,
   createInitialDocument,
+  type ElementId,
   type EditorDocument,
 } from "../editor/document";
 
@@ -12,6 +13,9 @@ export interface ReviewChange {
   applicable: boolean;
   blockedReason?: string;
   approved: boolean;
+  rejected: boolean;
+  target: ElementId;
+  kind: "reflow" | "crop" | "move";
 }
 export interface ChangeSet {
   id: "mobile-adaptation-1";
@@ -29,6 +33,7 @@ export interface ReviewAuthority {
   getState(): ReviewState;
   propose(objective: string): ChangeSet;
   setApproval(id: ChangeId, approved: boolean): ChangeSet;
+  rejectChange(id: ChangeId): ChangeSet;
   apply(): ReviewState;
   reject(): ReviewState;
   undo(): { changed: boolean; document: EditorDocument };
@@ -44,6 +49,29 @@ export function createReviewAuthority(): ReviewAuthority {
     proposal: proposal ? structuredClone(proposal) : null,
     canUndo: history.length > 0,
   });
+  const updateChange = (id: ChangeId, action: (change: ReviewChange) => void) => {
+    if (!proposal) throw new Error("No active proposal");
+    const change = proposal.changes.find((item) => item.id === id);
+    if (!change) throw new Error(`Unknown change ID: ${id}`);
+    if (!change.applicable)
+      throw new Error(`${change.label} is protected and cannot be changed`);
+    action(change);
+    return structuredClone(proposal);
+  };
+  const candidate = (
+    change: Omit<ReviewChange, "applicable" | "approved" | "rejected" | "blockedReason">,
+  ): ReviewChange => {
+    const protectedTarget = document.elements[change.target].protected;
+    return {
+      ...change,
+      applicable: !protectedTarget,
+      approved: false,
+      rejected: false,
+      ...(protectedTarget
+        ? { blockedReason: `${document.elements[change.target].label} is protected` }
+        : {}),
+    };
+  };
   return {
     getState: state,
     propose(objective) {
@@ -54,40 +82,42 @@ export function createReviewAuthority(): ReviewAuthority {
         objective,
         baseRevision: document.revision,
         changes: [
-          {
+          candidate({
             id: "headline-reflow",
             label: "Headline reflow",
-            description: "Break the mobile headline after ‘for’. ",
-            applicable: true,
-            approved: false,
-          },
-          {
+            description: "Break the mobile headline after ‘for’.",
+            target: "headline",
+            kind: "reflow",
+          }),
+          candidate({
             id: "image-crop",
             label: "Image crop",
             description: "Shift the mobile image focal point right.",
-            applicable: true,
-            approved: false,
-          },
-          {
+            target: "image",
+            kind: "crop",
+          }),
+          candidate({
             id: "logo-move",
-            label: "Logo move blocked",
+            label: "Logo move",
             description: "Move logo into the image field.",
-            applicable: false,
-            blockedReason: "Logo is protected",
-            approved: false,
-          },
+            target: "logo",
+            kind: "move",
+          }),
         ],
       };
       return structuredClone(proposal);
     },
     setApproval(id, approved) {
-      if (!proposal) throw new Error("No active proposal");
-      const change = proposal.changes.find((item) => item.id === id);
-      if (!change) throw new Error(`Unknown change ID: ${id}`);
-      if (!change.applicable)
-        throw new Error(`${change.label} is protected and cannot be approved`);
-      change.approved = approved;
-      return structuredClone(proposal);
+      return updateChange(id, (change) => {
+        change.approved = approved;
+        change.rejected = false;
+      });
+    },
+    rejectChange(id) {
+      return updateChange(id, (change) => {
+        change.approved = false;
+        change.rejected = true;
+      });
     },
     apply() {
       if (!proposal) throw new Error("No active proposal");
@@ -100,6 +130,8 @@ export function createReviewAuthority(): ReviewAuthority {
         throw new Error("Select at least one applicable change");
       const next = cloneDocument(document);
       for (const change of approved) {
+        if (next.elements[change.target].protected)
+          throw new Error(`${next.elements[change.target].label} is protected`);
         if (change.id === "headline-reflow")
           next.layouts.mobile.headline = "Make room for\nwhat comes next.";
         if (change.id === "image-crop")

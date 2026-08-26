@@ -8,7 +8,6 @@ export function serializeReceipt(store: AppStore): string {
       product: "FrameGuard",
       revision: state.document.revision,
       document: state.document,
-      activeProposal: state.proposal,
       audit: auditDocument(state.document),
     },
     null,
