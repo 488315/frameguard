@@ -524,7 +524,7 @@ select:focus-visible {
   zoom: var(--preview-zoom);
 }
 .canvases.with-mobile-diff {
-  grid-template-columns: minmax(440px, 1.8fr) minmax(360px, 1.2fr);
+  grid-template-columns: minmax(380px, 1fr) minmax(440px, 1.15fr);
 }
 .mobile-diff {
   min-width: 0;
@@ -674,6 +674,9 @@ select:focus-visible {
 }
 .canvas-frame.mobile {
   container-type: inline-size;
+}
+.mobile-diff .mobile .launch-copy h2 {
+  font-size: clamp(17px, 9cqw, 21px);
 }
 .mobile .image-field {
   height: 28%;
@@ -964,7 +967,7 @@ select:focus-visible {
     gap: 18px;
   }
   .canvases.with-mobile-diff {
-    grid-template-columns: minmax(400px, 1.7fr) minmax(330px, 1.3fr);
+    grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.15fr);
   }
 }
 @media (max-height: 820px) {
