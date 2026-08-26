@@ -224,7 +224,7 @@ test("selects dynamic rows and synchronizes the non-mutating proposal preview", 
   const { store } = activeStore();
   render(<App store={store} />);
   await user.click(
-    screen.getByRole("button", { name: "Image, proposal affected" }),
+    screen.getByRole("option", { name: "Image, 1 proposed change" }),
   );
   expect(
     screen.getByRole("button", { name: "Inspect Image change" }),
@@ -236,6 +236,73 @@ test("selects dynamic rows and synchronizes the non-mutating proposal preview", 
   expect(
     store.getSnapshot().previewDocument?.layouts.mobile.imagePosition,
   ).toBe("72% center");
+});
+
+test("exposes selected, proposed, and protected layer semantics", () => {
+  const store = createAppStore();
+  store.propose("Review the mobile layout");
+  render(<App store={store} />);
+
+  expect(
+    screen.getByRole("option", {
+      name: "Headline, selected, 1 proposed change",
+    }),
+  ).toHaveAttribute("aria-selected", "true");
+  expect(
+    screen.getByRole("option", {
+      name: "Logo, protected, 1 proposed change",
+    }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("option", {
+      name: "Legal, protected, no proposed changes",
+    }),
+  ).toBeVisible();
+});
+
+test("removes a layer proposal indicator as its final decision resolves", async () => {
+  const user = userEvent.setup();
+  const { store } = activeStore();
+  render(<App store={store} />);
+
+  expect(
+    screen.getByRole("option", {
+      name: "Headline, selected, 1 proposed change",
+    }),
+  ).toBeVisible();
+  await user.click(
+    screen.getByRole("button", { name: "Approve Headline change" }),
+  );
+
+  expect(
+    screen.getByRole("option", {
+      name: "Headline, selected, no proposed changes",
+    }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("option", { name: "Image, 1 proposed change" }),
+  ).toBeVisible();
+});
+
+test("supports roving keyboard focus and activates a focused layer", async () => {
+  const user = userEvent.setup();
+  const { store } = activeStore();
+  render(<App store={store} />);
+  const headline = screen.getByRole("option", {
+    name: "Headline, selected, 1 proposed change",
+  });
+  headline.focus();
+
+  await user.keyboard("{ArrowDown}");
+  const image = screen.getByRole("option", {
+    name: "Image, 1 proposed change",
+  });
+  expect(image).toHaveFocus();
+  expect(store.getSnapshot().selectedLayer).toBe("headline");
+
+  await user.keyboard("{Enter}");
+  expect(store.getSnapshot().selectedLayer).toBe("image");
+  expect(image).toHaveAttribute("aria-selected", "true");
 });
 
 test("reviews individual changes, applies only approval, records history, and undoes", async () => {
@@ -332,7 +399,11 @@ test("imports valid layouts and keeps the empty state usable after invalid input
     }),
   );
   expect(await screen.findByLabelText("desktop canvas")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Logo, protected" })).toBeVisible();
+  expect(
+    screen.getByRole("option", {
+      name: "Logo, protected, no proposed changes",
+    }),
+  ).toBeVisible();
 });
 
 test("supports keyboard activation and visible activity recovery", async () => {

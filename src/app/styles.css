@@ -281,6 +281,9 @@ select:focus-visible {
 .layers {
   border-right: 1px solid #c9c3b7;
   padding: 22px 9px;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
 }
 .layers h1,
 .review h1 {
@@ -307,6 +310,10 @@ select:focus-visible {
   line-height: 1.55;
 }
 .layer-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
   margin: 18px 0 0;
   padding: 0;
@@ -325,6 +332,9 @@ select:focus-visible {
   border-left: 2px solid transparent;
   background: transparent;
   padding: 7px 7px 7px 6px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   text-align: left;
 }
 .layer-row:hover {
@@ -340,16 +350,24 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 .layer-label {
+  min-width: 0;
+  overflow: hidden;
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.layer-row i {
+.layer-indicator,
+.layer-protection {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layer-indicator i {
   width: 5px;
   height: 5px;
   background: #c9432c;
   border-radius: 50%;
-}
-.layer-row.modified i {
-  background: #4e7451;
 }
 .layer-row svg {
   color: #a56e20;
