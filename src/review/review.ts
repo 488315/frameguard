@@ -46,6 +46,7 @@ export interface ReviewAuthority {
 export function createReviewAuthority(): ReviewAuthority {
   let document: EditorDocument | null = null;
   let proposal: ChangeSet | null = null;
+  let proposalOwnsDocument = false;
   let modifiedElements: ElementId[] = [];
   let history: Array<{
     document: EditorDocument;
@@ -94,6 +95,7 @@ export function createReviewAuthority(): ReviewAuthority {
     loadDocument(nextDocument) {
       document = cloneDocument(nextDocument);
       proposal = null;
+      proposalOwnsDocument = false;
       modifiedElements = [];
       history = [];
       return state();
@@ -101,6 +103,7 @@ export function createReviewAuthority(): ReviewAuthority {
     reset() {
       document = null;
       proposal = null;
+      proposalOwnsDocument = false;
       modifiedElements = [];
       history = [];
       return state();
@@ -108,6 +111,7 @@ export function createReviewAuthority(): ReviewAuthority {
     propose(objective) {
       if (!objective.trim()) throw new Error("Objective must not be empty");
       if (proposal) throw new Error("An active proposal already exists");
+      proposalOwnsDocument = document === null;
       document ??= createInitialDocument();
       proposal = {
         id: "mobile-adaptation-1",
@@ -193,10 +197,17 @@ export function createReviewAuthority(): ReviewAuthority {
       document = next;
       modifiedElements = changedTargets;
       proposal = null;
+      proposalOwnsDocument = false;
       return state();
     },
     reject() {
       proposal = null;
+      if (proposalOwnsDocument) {
+        document = null;
+        modifiedElements = [];
+        history = [];
+      }
+      proposalOwnsDocument = false;
       return state();
     },
     undo() {

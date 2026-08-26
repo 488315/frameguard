@@ -11,8 +11,7 @@ test("refuses to export an empty workspace", () => {
 
 test("serializes a deterministic secret-free review receipt", () => {
   const store = createAppStore();
-  store.propose("adapt");
-  store.reject();
+  store.importLayout(JSON.stringify(createInitialDocument()));
   const receipt = serializeReceipt(store);
   expect(JSON.parse(receipt)).toEqual({
     product: "FrameGuard",

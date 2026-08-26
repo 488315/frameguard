@@ -3,10 +3,7 @@ import {
   type ChangeId,
   type ReviewState,
 } from "../review/review";
-import {
-  parseImportedDocument,
-  type ElementId,
-} from "../editor/document";
+import { parseImportedDocument, type ElementId } from "../editor/document";
 export interface Activity {
   tool: string;
   result: string;
@@ -183,7 +180,13 @@ export function createAppStore() {
     reject() {
       agentApplyAuthorized = false;
       selectedChange = null;
-      return run("reject_change_set", () => review.reject());
+      return run(
+        "reject_change_set",
+        () => review.reject(),
+        (result) => {
+          if (!result.document) selectedLayer = null;
+        },
+      );
     },
     undo() {
       agentApplyAuthorized = false;
