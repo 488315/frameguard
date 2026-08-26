@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { createReviewAuthority } from "./review";
 
 describe("review authority", () => {
+  it("starts without an authoritative workspace", () => {
+    expect(createReviewAuthority().getState()).toMatchObject({
+      document: null,
+      proposal: null,
+      canUndo: false,
+      modifiedElements: [],
+    });
+  });
+
   it("creates two applicable changes and one visible blocked logo change", () => {
     const review = createReviewAuthority();
     const proposal = review.propose("Adapt the launch page for mobile");
