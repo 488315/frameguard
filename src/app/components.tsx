@@ -324,7 +324,7 @@ export function ProposalInspector({
                 <div className="change-decisions">
                   <button
                     aria-label={`Reject ${change.label}`}
-                    aria-pressed={change.rejected}
+                    disabled={busy || change.rejected}
                     onClick={() => store.rejectChange(change.id)}
                   >
                     <X /> Reject
@@ -332,6 +332,7 @@ export function ProposalInspector({
                   <button
                     aria-label={`Approve ${change.label}`}
                     aria-pressed={change.approved}
+                    disabled={busy}
                     onClick={() =>
                       store.setApproval(change.id, !change.approved)
                     }

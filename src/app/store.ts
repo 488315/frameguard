@@ -56,9 +56,14 @@ export function createAppStore() {
     });
     listeners.forEach((listener) => listener());
   };
-  const run = <T>(tool: string, action: () => T): T => {
+  const run = <T>(
+    tool: string,
+    action: () => T,
+    beforeEmit?: (result: T) => void,
+  ): T => {
     try {
       const result = action();
+      beforeEmit?.(result);
       activity = { tool, result: "Completed" };
       emit();
       return result;
@@ -85,11 +90,14 @@ export function createAppStore() {
       return review.getState();
     },
     propose(objective: string) {
-      const result = run("propose_adaptation", () => review.propose(objective));
-      selectedChange = result.changes[0].id;
-      selectedLayer = result.changes[0].target;
-      emit();
-      return result;
+      return run(
+        "propose_adaptation",
+        () => review.propose(objective),
+        (result) => {
+          selectedChange = result.changes[0].id;
+          selectedLayer = result.changes[0].target;
+        },
+      );
     },
     setApproval(id: ChangeId, approved: boolean) {
       agentApplyAuthorized = false;
@@ -130,11 +138,23 @@ export function createAppStore() {
         throw new Error("Human authorization required in the FrameGuard UI");
       }
       agentApplyAuthorized = false;
-      return run("apply_approved_changes", () => review.apply());
+      return run(
+        "apply_approved_changes",
+        () => review.apply(),
+        () => {
+          selectedChange = null;
+        },
+      );
     },
     applyFromUi() {
       agentApplyAuthorized = false;
-      return run("apply_approved_changes", () => review.apply());
+      return run(
+        "apply_approved_changes",
+        () => review.apply(),
+        () => {
+          selectedChange = null;
+        },
+      );
     },
     reject() {
       agentApplyAuthorized = false;
