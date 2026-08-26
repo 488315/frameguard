@@ -676,7 +676,7 @@ select:focus-visible {
   container-type: inline-size;
 }
 .mobile-diff .mobile .launch-copy h2 {
-  font-size: clamp(17px, 9cqw, 21px);
+  font-size: clamp(16px, 8cqw, 19px);
 }
 .mobile .image-field {
   height: 28%;
