@@ -119,3 +119,19 @@ test("shows activity recorded after a completed UI action", async () => {
   );
   expect(screen.getByText("Document inspected")).toBeVisible();
 });
+
+test("marks only the layer changed by the committed proposal", async () => {
+  const user = userEvent.setup();
+  render(<App store={createAppStore()} />);
+  await user.click(
+    screen.getByRole("button", { name: "Create demo proposal" }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Approve Headline reflow" }),
+  );
+  await user.click(screen.getByRole("button", { name: "Apply 1 change" }));
+  expect(
+    screen.getByRole("button", { name: "Headline, modified" }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Image" })).toBeVisible();
+});
