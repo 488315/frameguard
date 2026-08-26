@@ -1,6 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:wght@500&display=swap");
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   color: #292824;
   background: #ece8de;
 }
@@ -34,8 +33,7 @@ button {
 }
 .topbar p {
   font:
-    500 13px Newsreader,
-    serif;
+    500 13px Georgia, serif;
 }
 .revision {
   text-align: right;
@@ -58,7 +56,7 @@ button {
 .layers h1,
 .review h1 {
   font:
-    500 22px Newsreader,
+    500 22px Georgia,
     serif;
   margin: 0 0 20px;
 }
@@ -105,13 +103,13 @@ button {
 }
 .stage-heading h1 {
   font:
-    500 30px Newsreader,
+    500 30px Georgia,
     serif;
   margin: 0;
 }
 .stage-heading > p {
   font:
-    500 13px Newsreader,
+    500 13px Georgia,
     serif;
   letter-spacing: 0;
 }
@@ -164,7 +162,7 @@ button {
 }
 .launch-copy h2 {
   font:
-    500 clamp(18px, 2.6vw, 36px)/0.96 Newsreader,
+    500 clamp(18px, 2.6vw, 36px)/0.96 Georgia,
     serif;
   margin: 5% 0;
 }
@@ -304,7 +302,7 @@ button {
 .change-list b {
   display: block;
   font:
-    500 15px Newsreader,
+    500 15px Georgia,
     serif;
 }
 .change-list small {
@@ -363,7 +361,7 @@ button {
   flex: 1;
   padding: 24px 20px;
   font:
-    500 16px/1.35 Newsreader,
+    500 16px/1.35 Georgia,
     serif;
 }
 .webmcp {
