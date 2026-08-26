@@ -1,4 +1,4 @@
-# FrameGuard empty workspace design QA
+# FrameGuard proposal workflow design QA
 
 ## Reference comparison
 
@@ -16,12 +16,27 @@
 - Responsive captures at `1920x1080`, `1440x900`, `1366x768`, `1280x720`, and `1024x768` show no horizontal overflow or collisions. At `1024x768`, the existing layout intentionally moves the review inspector below the workspace.
 - Decorative empty-state graphics are hidden from assistive technology; keyboard actions and native disabled states remain intact.
 
+## Proposal workflow captures
+
+- States `01-empty.png` through `10-rejected.png` are under
+  `artifacts/proposal-workflow/`.
+- The inspected sequence covers empty, composer, populated draft, validation
+  error, active proposal, selected preview, protected block, partial approval,
+  applied, and rejected states.
+- Responsive composer captures cover `1920x1080`, `1600x900`, `1440x900`,
+  `1366x768`, and `1280x800`; no horizontal document overflow was detected.
+- Draft and validation states keep the committed canvas unchanged. Active review
+  rows show before/after values; the selected crop and protected Logo overlays
+  remain restrained and legible. Applied state advances to revision 02; rejected
+  state remains at revision 01.
+
 ## Interaction inspection
 
 - Empty to proposal: passed.
 - Proposal annotations and protected logo block: passed.
 - Approve two changes, apply, and undo: passed.
 - Reject provisional proposal back to empty: passed.
-- Browser console warnings/errors: none.
+- Playwright workflow: 4/4 passed.
+- Browser console warnings/errors: none observed in the automated product flow.
 
 final result: passed
