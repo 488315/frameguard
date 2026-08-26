@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
 import { App } from "./App";
 import { createAppStore } from "./store";
+import { createInitialDocument } from "../editor/document";
 
 test("renders the empty workspace with no demo layers or canvases", () => {
   render(<App />);
@@ -191,4 +192,33 @@ test("marks only the layer changed by the committed proposal", async () => {
   expect(modifiedHeadline).toBeVisible();
   expect(modifiedHeadline.querySelector("i")).not.toBeNull();
   expect(screen.getByRole("button", { name: "Image" })).toBeVisible();
+});
+
+test("imports a valid layout through the canonical empty-state action", async () => {
+  const user = userEvent.setup();
+  render(<App store={createAppStore()} />);
+  expect(screen.getByRole("button", { name: "Import layout" })).toBeEnabled();
+  await user.upload(
+    screen.getByLabelText("Import layout file"),
+    new File([JSON.stringify(createInitialDocument())], "layout.json", {
+      type: "application/json",
+    }),
+  );
+  expect(await screen.findByLabelText("desktop canvas")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Logo, protected" })).toBeVisible();
+  expect(screen.queryByText("Start your first review")).not.toBeInTheDocument();
+});
+
+test("keeps the empty workspace usable after an invalid import", async () => {
+  const user = userEvent.setup();
+  const store = createAppStore();
+  render(<App store={store} />);
+  await user.upload(
+    screen.getByLabelText("Import layout file"),
+    new File(["not json"], "broken.json", { type: "application/json" }),
+  );
+  expect(await screen.findByText("Import must contain valid JSON")).toBeVisible();
+  expect(store.getSnapshot().document).toBeNull();
+  expect(screen.getByText("Start your first review")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Import layout" })).toBeEnabled();
 });
