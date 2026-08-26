@@ -57,6 +57,24 @@ test("rejects one proposed change without changing the committed revision", asyn
   ).toBeDisabled();
 });
 
+test("exposes rejection as a one-way decision with approval as its reversal", async () => {
+  const user = userEvent.setup();
+  render(<App store={createAppStore()} />);
+  await user.click(
+    screen.getByRole("button", { name: "Create demo proposal" }),
+  );
+  const reject = screen.getByRole("button", {
+    name: "Reject Headline reflow",
+  });
+  expect(reject).not.toHaveAttribute("aria-pressed");
+  await user.click(reject);
+  expect(reject).toBeDisabled();
+  await user.click(
+    screen.getByRole("button", { name: "Approve Headline reflow" }),
+  );
+  expect(reject).toBeEnabled();
+});
+
 test("visibly reflects proposal, approval, apply, and undo", async () => {
   const user = userEvent.setup();
   const store = createAppStore();

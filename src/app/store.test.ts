@@ -21,6 +21,22 @@ describe("app store review focus", () => {
     });
   });
 
+  it("publishes a proposal and its focus as one coherent update", () => {
+    const store = createAppStore();
+    const snapshots: ReturnType<typeof store.getSnapshot>[] = [];
+    const unsubscribe = store.subscribe(() =>
+      snapshots.push(store.getSnapshot()),
+    );
+    store.propose("adapt");
+    unsubscribe();
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      proposal: { id: "mobile-adaptation-1" },
+      selectedLayer: "headline",
+      selectedChange: "headline-reflow",
+    });
+  });
+
   it("selects a change and its affected layer together", () => {
     const store = createAppStore();
     store.propose("adapt");
@@ -49,6 +65,18 @@ describe("app store review focus", () => {
       selectedLayer: "headline",
       selectedChange: "headline-reflow",
       proposal: { id: "mobile-adaptation-1" },
+    });
+  });
+
+  it("clears proposal focus only after a successful apply", () => {
+    const store = createAppStore();
+    store.propose("adapt");
+    store.setApproval("headline-reflow", true);
+    store.applyFromUi();
+    expect(store.getSnapshot()).toMatchObject({
+      proposal: null,
+      selectedChange: null,
+      document: { revision: 2 },
     });
   });
 });
