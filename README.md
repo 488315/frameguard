@@ -1,6 +1,6 @@
 # FrameGuard
 
-FrameGuard is a local, human-in-the-loop visual change-review workspace built with React, TypeScript, Vite, and WebMCP. An agent can inspect and propose an adaptation, but protected elements and committed canvas state remain under explicit human control.
+FrameGuard is a local, human-in-the-loop visual change-review workspace built with React, TypeScript, Vite, and WebMCP. It starts empty: an agent can explicitly propose an adaptation or the user can import a validated FrameGuard layout, but protected elements and committed canvas state remain under explicit human control.
 
 Live demo: https://488315.github.io/frameguard/
 
@@ -28,7 +28,7 @@ Try this prompt from a WebMCP-capable agent while FrameGuard is visible:
 
 > Inspect the FrameGuard document, propose a mobile adaptation, approve the headline reflow and image crop, then stop and wait for my approval before applying anything.
 
-The proposal appears immediately in the same interface. The attempted logo move remains visible and blocked. After the human confirms, ask the agent to apply approved changes, then undo them and export a review receipt.
+The explicit proposal request provisions the demo workspace and appears immediately in the same interface. The attempted logo move remains visible and blocked. After the human confirms, ask the agent to apply approved changes, then undo them and export a review receipt. Rejecting that provisional proposal returns to the empty workspace.
 
 ## Tool surface
 
