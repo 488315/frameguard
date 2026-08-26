@@ -129,7 +129,10 @@ test("keeps an invalid draft open and focuses its exact operation field", async 
     screen.getByLabelText("Proposal objective"),
     "Keep the subject visible.",
   );
-  await user.selectOptions(screen.getByLabelText("Layer for change 1"), "image");
+  await user.selectOptions(
+    screen.getByLabelText("Layer for change 1"),
+    "image",
+  );
   await user.type(
     screen.getByLabelText("Proposed value for change 1"),
     "somewhere interesting",
