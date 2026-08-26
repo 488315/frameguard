@@ -24,6 +24,7 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const importInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [notice, setNotice] = useState<{
     tone: "working" | "error";
     text: string;
@@ -89,12 +90,19 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
         <LayerRail state={state} store={store} />
         <ReviewWorkspace
           state={state}
+          busy={busy}
+          openImport={() => importInput.current?.click()}
+          openComposer={() => setComposerOpen(true)}
+        />
+        <ProposalInspector
+          state={state}
           store={store}
           run={run}
           busy={busy}
-          openImport={() => importInput.current?.click()}
+          composerOpen={composerOpen}
+          openComposer={() => setComposerOpen(true)}
+          closeComposer={() => setComposerOpen(false)}
         />
-        <ProposalInspector state={state} store={store} run={run} busy={busy} />
       </div>
       <footer
         className={`activity ${visibleNotice?.tone ?? ""}`}

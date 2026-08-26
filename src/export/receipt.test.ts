@@ -18,6 +18,7 @@ test("serializes a deterministic secret-free review receipt", () => {
     revision: 1,
     document: createInitialDocument(),
     audit: auditDocument(createInitialDocument()),
+    reviewHistory: [],
   });
   expect(receipt).toBe(serializeReceipt(store));
   expect(receipt).toContain('"product": "FrameGuard"');
@@ -30,4 +31,26 @@ test("excludes unapproved proposal data from the committed-state receipt", () =>
   const receipt = serializeReceipt(store);
   expect(receipt).not.toContain("private draft objective");
   expect(receipt).not.toContain("activeProposal");
+});
+
+test("records the proposal, human decisions, blocked changes, and resulting revision", () => {
+  const store = createAppStore();
+  const proposal = store.propose("Prepare a controlled mobile pass");
+  store.setApproval(proposal.changes[0].id, true);
+  store.rejectChange(proposal.changes[1].id);
+  store.applyFromUi();
+  const receipt = JSON.parse(serializeReceipt(store));
+  expect(receipt.reviewHistory).toMatchObject([
+    {
+      proposalId: proposal.id,
+      title: "Mobile adaptation",
+      objective: "Prepare a controlled mobile pass",
+      baseRevision: 1,
+      resultingRevision: 2,
+      outcome: "applied",
+      approvedChangeIds: [proposal.changes[0].id],
+      rejectedChangeIds: [proposal.changes[1].id],
+      blockedChangeIds: [proposal.changes[2].id],
+    },
+  ]);
 });

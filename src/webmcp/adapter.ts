@@ -1,6 +1,7 @@
 import { auditDocument } from "../editor/document";
 import { serializeReceipt } from "../export/receipt";
 import type { AppStore } from "../app/store";
+import type { ProposalInput } from "../review/review";
 import type { ToolResult, WebMcpTool } from "./types";
 
 const emptySchema = {
@@ -25,6 +26,67 @@ function assertExactKeys(input: Record<string, unknown>, allowed: string[]) {
   const unexpected = Object.keys(input).filter((key) => !allowed.includes(key));
   if (unexpected.length)
     throw new Error(`Unexpected input field: ${unexpected[0]}`);
+}
+
+const proposalInputSchema = {
+  type: "object",
+  properties: {
+    expectedRevision: { type: "integer", minimum: 1 },
+    title: { type: "string", minLength: 1, maxLength: 120 },
+    objective: { type: "string", minLength: 1, maxLength: 500 },
+    changes: {
+      type: "array",
+      minItems: 1,
+      maxItems: 20,
+      items: {
+        type: "object",
+        properties: {
+          target: {
+            type: "string",
+            enum: ["logo", "headline", "image", "body", "cta", "legal"],
+          },
+          operation: {
+            type: "object",
+            properties: {
+              kind: {
+                type: "string",
+                enum: ["set_text", "set_image_position"],
+              },
+              canvas: { type: "string", enum: ["desktop", "mobile"] },
+              value: { type: "string", minLength: 1, maxLength: 1000 },
+            },
+            required: ["kind", "canvas", "value"],
+            additionalProperties: false,
+          },
+          rationale: { type: "string", minLength: 1, maxLength: 300 },
+        },
+        required: ["target", "operation", "rationale"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["expectedRevision", "title", "objective", "changes"],
+  additionalProperties: false,
+} as const;
+
+function assertProposalInput(input: Record<string, unknown>): ProposalInput {
+  assertExactKeys(input, ["expectedRevision", "title", "objective", "changes"]);
+  if (!Array.isArray(input.changes)) {
+    throw new Error("changes must be an array");
+  }
+  input.changes.forEach((rawChange, index) => {
+    assertObject(rawChange);
+    try {
+      assertExactKeys(rawChange, ["target", "operation", "rationale"]);
+      assertObject(rawChange.operation);
+      assertExactKeys(rawChange.operation, ["kind", "canvas", "value"]);
+    } catch (error) {
+      throw new Error(
+        `Change ${index + 1}: ${error instanceof Error ? error.message : "invalid change"}`,
+      );
+    }
+  });
+  return input as unknown as ProposalInput;
 }
 
 const afterPaint = () =>
@@ -63,6 +125,7 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
           return textResult({
             workspaceLoaded: false,
             revision: null,
+            starterRevision: 1,
             layouts: {},
             protection: {},
             activeProposal: null,
@@ -90,6 +153,19 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
           activeProposal: state.proposal,
           audit: auditDocument(state.document),
         });
+      },
+    },
+    {
+      name: "create_proposal",
+      title: "Create proposal",
+      description:
+        "Creates a revision-bound typed proposal after FrameGuard derives before-values, policy decisions, and applicability from the committed document.",
+      inputSchema: proposalInputSchema,
+      async execute(input) {
+        assertObject(input);
+        const result = store.createProposal(assertProposalInput(input));
+        await afterPaint();
+        return textResult(result);
       },
     },
     {
@@ -150,6 +226,11 @@ export function createStaticTools(store: AppStore): WebMcpTool[] {
 }
 
 export function createReviewTools(store: AppStore): WebMcpTool[] {
+  const proposal = store.getSnapshot().proposal;
+  if (!proposal) return [];
+  const applicableIds = proposal.changes
+    .filter((change) => change.applicable)
+    .map((change) => change.id);
   return [
     {
       name: "set_change_approval",
@@ -161,7 +242,7 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
         properties: {
           changeId: {
             type: "string",
-            enum: ["headline-reflow", "image-crop"],
+            enum: applicableIds,
           },
           approved: { type: "boolean" },
         },
@@ -172,8 +253,8 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
         assertObject(input);
         assertExactKeys(input, ["changeId", "approved"]);
         if (
-          input.changeId !== "headline-reflow" &&
-          input.changeId !== "image-crop"
+          typeof input.changeId !== "string" ||
+          !applicableIds.includes(input.changeId)
         ) {
           throw new Error("changeId must identify an applicable change");
         }
@@ -224,7 +305,7 @@ export function installWebMcp(store: AppStore): () => void {
   }
   const permanent = new AbortController();
   let reviewController: AbortController | null = null;
-  let hadProposal = false;
+  let registeredProposalId: string | null = null;
   let disposed = false;
   let staticReady = false;
   let reviewReady = false;
@@ -252,14 +333,14 @@ export function installWebMcp(store: AppStore): () => void {
       );
     });
   const syncReviewTools = () => {
-    const hasProposal = Boolean(store.getSnapshot().proposal);
-    if (hasProposal === hadProposal) return;
-    hadProposal = hasProposal;
+    const activeProposalId = store.getSnapshot().proposal?.id ?? null;
+    if (activeProposalId === registeredProposalId) return;
+    registeredProposalId = activeProposalId;
     reviewController?.abort();
     reviewController = null;
     reviewReady = false;
     publishAvailability();
-    if (hasProposal) {
+    if (activeProposalId) {
       const controller = new AbortController();
       reviewController = controller;
       const signal = controller.signal;

@@ -10,6 +10,7 @@ export function serializeReceipt(store: AppStore): string {
       revision: state.document.revision,
       document: state.document,
       audit: auditDocument(state.document),
+      reviewHistory: state.reviewHistory,
     },
     null,
     2,

@@ -1,9 +1,14 @@
 import {
   createReviewAuthority,
   type ChangeId,
+  type ProposalInput,
   type ReviewState,
 } from "../review/review";
-import { parseImportedDocument, type ElementId } from "../editor/document";
+import {
+  parseImportedDocument,
+  type EditorDocument,
+  type ElementId,
+} from "../editor/document";
 export interface Activity {
   tool: string;
   result: string;
@@ -14,6 +19,7 @@ export interface AppSnapshot extends ReviewState {
   agentApplyAuthorized: boolean;
   selectedLayer: ElementId | null;
   selectedChange: ChangeId | null;
+  previewDocument: EditorDocument | null;
 }
 
 function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
@@ -24,11 +30,26 @@ function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
     Object.freeze(snapshot.document.layouts);
     Object.freeze(snapshot.document);
   }
+  if (snapshot.previewDocument) {
+    Object.freeze(snapshot.previewDocument.elements);
+    Object.values(snapshot.previewDocument.layouts).forEach(Object.freeze);
+    Object.freeze(snapshot.previewDocument.layouts);
+    Object.freeze(snapshot.previewDocument);
+  }
   snapshot.proposal?.changes.forEach(Object.freeze);
   if (snapshot.proposal) {
     Object.freeze(snapshot.proposal.changes);
     Object.freeze(snapshot.proposal);
   }
+  snapshot.reviewHistory.forEach((entry) => {
+    entry.changes.forEach(Object.freeze);
+    Object.freeze(entry.changes);
+    Object.freeze(entry.approvedChangeIds);
+    Object.freeze(entry.rejectedChangeIds);
+    Object.freeze(entry.blockedChangeIds);
+    Object.freeze(entry);
+  });
+  Object.freeze(snapshot.reviewHistory);
   return Object.freeze(snapshot);
 }
 export function createAppStore() {
@@ -38,6 +59,10 @@ export function createAppStore() {
   let agentApplyAuthorized = false;
   let selectedLayer: ElementId | null = null;
   let selectedChange: ChangeId | null = null;
+  const currentPreview = () =>
+    review.getState().proposal
+      ? review.preview(selectedChange ?? undefined)
+      : null;
   let snapshot: AppSnapshot = freezeSnapshot({
     ...review.getState(),
     activity,
@@ -45,6 +70,7 @@ export function createAppStore() {
     agentApplyAuthorized,
     selectedLayer,
     selectedChange,
+    previewDocument: currentPreview(),
   });
   const listeners = new Set<() => void>();
   const emit = () => {
@@ -55,6 +81,7 @@ export function createAppStore() {
       agentApplyAuthorized,
       selectedLayer,
       selectedChange,
+      previewDocument: currentPreview(),
     });
     listeners.forEach((listener) => listener());
   };
@@ -120,6 +147,17 @@ export function createAppStore() {
         },
       );
     },
+    createProposal(input: ProposalInput) {
+      agentApplyAuthorized = false;
+      return run(
+        "create_proposal",
+        () => review.createProposal(input),
+        (result) => {
+          selectedChange = result.changes[0]?.id ?? null;
+          selectedLayer = result.changes[0]?.target ?? null;
+        },
+      );
+    },
     setApproval(id: ChangeId, approved: boolean) {
       agentApplyAuthorized = false;
       return run("set_change_approval", () => review.setApproval(id, approved));
@@ -146,7 +184,15 @@ export function createAppStore() {
       emit();
     },
     authorizeAgentApply() {
-      if (!review.getState().proposal) throw new Error("No active proposal");
+      const active = review.getState().proposal;
+      if (!active) throw new Error("No active proposal");
+      if (
+        !active.changes.some(
+          (change) => change.applicable && change.decision === "approved",
+        )
+      ) {
+        throw new Error("Approve at least one applicable change first");
+      }
       agentApplyAuthorized = true;
       activity = {
         tool: "human_authorization",

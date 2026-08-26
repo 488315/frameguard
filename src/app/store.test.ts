@@ -2,7 +2,41 @@ import { describe, expect, it } from "vitest";
 import { createInitialDocument } from "../editor/document";
 import { createAppStore } from "./store";
 
+const customProposal = {
+  expectedRevision: 1,
+  title: "Custom mobile proposal",
+  objective: "Refine the narrow composition.",
+  changes: [
+    {
+      target: "headline" as const,
+      operation: {
+        kind: "set_text" as const,
+        canvas: "mobile" as const,
+        value: "Custom\nmobile headline",
+      },
+      rationale: "Improve the line break.",
+    },
+  ],
+};
+
 describe("app store review focus", () => {
+  it("publishes a custom proposal, dynamic focus, and non-mutating preview together", () => {
+    const store = createAppStore();
+    const committedBefore = store.getSnapshot().document;
+    const proposal = store.createProposal(customProposal);
+    expect(store.getSnapshot()).toMatchObject({
+      proposal: { id: proposal.id, title: "Custom mobile proposal" },
+      selectedLayer: "headline",
+      selectedChange: proposal.changes[0].id,
+      previewDocument: {
+        layouts: { mobile: { headline: "Custom\nmobile headline" } },
+      },
+    });
+    expect(committedBefore).toBeNull();
+    expect(store.getSnapshot().document?.layouts.mobile.headline).toBe(
+      "Make room for what comes next.",
+    );
+  });
   it("starts with no active proposal or proposal selection", () => {
     const state = createAppStore().getSnapshot();
     expect(state.proposal).toBeNull();
@@ -14,11 +48,12 @@ describe("app store review focus", () => {
 
   it("selects layers and focuses their proposal change", () => {
     const store = createAppStore();
-    store.propose("adapt");
+    const proposal = store.propose("adapt");
+    const image = proposal.changes.find((change) => change.target === "image")!;
     store.selectLayer("image");
     expect(store.getSnapshot()).toMatchObject({
       selectedLayer: "image",
-      selectedChange: "image-crop",
+      selectedChange: image.id,
     });
   });
 
@@ -28,51 +63,52 @@ describe("app store review focus", () => {
     const unsubscribe = store.subscribe(() =>
       snapshots.push(store.getSnapshot()),
     );
-    store.propose("adapt");
+    const proposal = store.propose("adapt");
     unsubscribe();
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0]).toMatchObject({
-      proposal: { id: "mobile-adaptation-1" },
+      proposal: { id: proposal.id },
       selectedLayer: "headline",
-      selectedChange: "headline-reflow",
+      selectedChange: proposal.changes[0].id,
     });
   });
 
   it("selects a change and its affected layer together", () => {
     const store = createAppStore();
-    store.propose("adapt");
-    store.selectChange("logo-move");
+    const proposal = store.propose("adapt");
+    const logo = proposal.changes.find((change) => change.target === "logo")!;
+    store.selectChange(logo.id);
     expect(store.getSnapshot()).toMatchObject({
       selectedLayer: "logo",
-      selectedChange: "logo-move",
+      selectedChange: logo.id,
     });
   });
 
   it("records an individual rejection without changing the document", () => {
     const store = createAppStore();
-    store.propose("adapt");
+    const proposal = store.propose("adapt");
     const initial = store.getSnapshot().document;
-    store.rejectChange("headline-reflow");
-    expect(store.getSnapshot().proposal?.changes[0].rejected).toBe(true);
+    store.rejectChange(proposal.changes[0].id);
+    expect(store.getSnapshot().proposal?.changes[0].decision).toBe("rejected");
     expect(store.getSnapshot().document).toEqual(initial);
   });
 
   it("preserves proposal focus when undo has no committed history", () => {
     const store = createAppStore();
-    store.propose("adapt");
+    const proposal = store.propose("adapt");
     const result = store.undo();
     expect(result.changed).toBe(false);
     expect(store.getSnapshot()).toMatchObject({
       selectedLayer: "headline",
-      selectedChange: "headline-reflow",
-      proposal: { id: "mobile-adaptation-1" },
+      selectedChange: proposal.changes[0].id,
+      proposal: { id: proposal.id },
     });
   });
 
   it("clears proposal focus only after a successful apply", () => {
     const store = createAppStore();
-    store.propose("adapt");
-    store.setApproval("headline-reflow", true);
+    const proposal = store.propose("adapt");
+    store.setApproval(proposal.changes[0].id, true);
     store.applyFromUi();
     expect(store.getSnapshot()).toMatchObject({
       proposal: null,
@@ -109,8 +145,8 @@ describe("app store review focus", () => {
 
   it("resets all transient and committed workspace state", () => {
     const store = createAppStore();
-    store.propose("adapt");
-    store.setApproval("headline-reflow", true);
+    const proposal = store.propose("adapt");
+    store.setApproval(proposal.changes[0].id, true);
     store.authorizeAgentApply();
     store.resetWorkspace();
     expect(store.getSnapshot()).toMatchObject({

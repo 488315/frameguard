@@ -13,9 +13,10 @@ import {
 } from "@phosphor-icons/react";
 import React from "react";
 import type { CanvasLayout, ElementId } from "../editor/document";
-import type { ChangeId, ReviewChange } from "../review/review";
+import type { ReviewChange } from "../review/review";
 import { downloadReceipt } from "../export/receipt";
 import type { AppSnapshot, AppStore } from "./store";
+import { ProposalComposer } from "./ProposalComposer";
 
 export function ReviewHeader({
   state,
@@ -126,7 +127,7 @@ function LaunchCanvas({
 }: {
   mode: "desktop" | "mobile";
   layout: CanvasLayout;
-  selectedChange: ChangeId | null;
+  selectedChange: ReviewChange | null;
   proposal: boolean;
 }) {
   return (
@@ -151,7 +152,8 @@ function LaunchCanvas({
           </h2>
           {mode === "mobile" &&
             proposal &&
-            selectedChange === "headline-reflow" && (
+            selectedChange?.target === "headline" &&
+            selectedChange.canvas === mode && (
               <div
                 className="headline-overlay"
                 aria-label="headline boundaries"
@@ -168,7 +170,7 @@ function LaunchCanvas({
           </span>
         </div>
         <div
-          className={`image-field ${selectedChange === "image-crop" && proposal ? "crop-focus" : ""}`}
+          className={`image-field ${selectedChange?.target === "image" && selectedChange.canvas === mode && proposal ? "crop-focus" : ""}`}
           style={{ backgroundPosition: layout.imagePosition }}
         >
           <div className="still-life">
@@ -176,11 +178,13 @@ function LaunchCanvas({
             <i />
             <em />
           </div>
-          {mode === "mobile" && selectedChange === "image-crop" && proposal && (
-            <div className="crop-guide" aria-label="proposed crop boundary">
-              <span>Proposed crop</span>
-            </div>
-          )}
+          {selectedChange?.target === "image" &&
+            selectedChange.canvas === mode &&
+            proposal && (
+              <div className="crop-guide" aria-label="proposed crop boundary">
+                <span>Proposed crop</span>
+              </div>
+            )}
         </div>
         <footer>
           © 2026 Still / Life. All rights reserved.{" "}
@@ -188,13 +192,16 @@ function LaunchCanvas({
             <LockKey size={10} weight="fill" /> Protected
           </span>
         </footer>
-        {mode === "mobile" && selectedChange === "logo-move" && proposal && (
-          <div className="blocked-vector" aria-label="blocked logo move">
-            <ArrowRight />
-            <span>Blocked at protected anchor</span>
-            <LockKey weight="fill" />
-          </div>
-        )}
+        {selectedChange?.target === "logo" &&
+          selectedChange.canvas === mode &&
+          !selectedChange.applicable &&
+          proposal && (
+            <div className="blocked-vector" aria-label="blocked logo move">
+              <ArrowRight />
+              <span>Blocked at protected anchor</span>
+              <LockKey weight="fill" />
+            </div>
+          )}
       </article>
     </div>
   );
@@ -202,19 +209,21 @@ function LaunchCanvas({
 
 export function ReviewWorkspace({
   state,
-  store,
-  run,
   busy,
   openImport,
+  openComposer,
 }: {
   state: AppSnapshot;
-  store: AppStore;
-  run: (label: string, action: () => unknown) => void;
   busy: boolean;
   openImport: () => void;
+  openComposer: () => void;
 }) {
   const [zoom, setZoom] = React.useState(0);
   const zoomScale = [0.82, 1, 1.16][zoom + 1];
+  const selectedProposalChange =
+    state.proposal?.changes.find(
+      (change) => change.id === state.selectedChange,
+    ) ?? null;
   if (!state.document) {
     return (
       <section className="stage empty-stage" aria-label="Empty workspace">
@@ -239,14 +248,7 @@ export function ReviewWorkspace({
             started.
           </p>
           <div className="workspace-empty-actions">
-            <button
-              disabled={busy}
-              onClick={() =>
-                run("Creating proposal", () =>
-                  store.propose("Adapt the launch page for mobile"),
-                )
-              }
-            >
+            <button disabled={busy} onClick={openComposer}>
               Create proposal
             </button>
             <button disabled={busy} onClick={openImport}>
@@ -292,14 +294,20 @@ export function ReviewWorkspace({
         >
           <LaunchCanvas
             mode="desktop"
-            layout={state.document.layouts.desktop}
-            selectedChange={state.selectedChange}
+            layout={
+              state.previewDocument?.layouts.desktop ??
+              state.document.layouts.desktop
+            }
+            selectedChange={selectedProposalChange}
             proposal={Boolean(state.proposal)}
           />
           <LaunchCanvas
             mode="mobile"
-            layout={state.document.layouts.mobile}
-            selectedChange={state.selectedChange}
+            layout={
+              state.previewDocument?.layouts.mobile ??
+              state.document.layouts.mobile
+            }
+            selectedChange={selectedProposalChange}
             proposal={Boolean(state.proposal)}
           />
         </div>
@@ -310,8 +318,8 @@ export function ReviewWorkspace({
 
 function decisionLabel(change: ReviewChange) {
   if (!change.applicable) return "Blocked";
-  if (change.approved) return "Approved";
-  if (change.rejected) return "Rejected";
+  if (change.decision === "approved") return "Approved";
+  if (change.decision === "rejected") return "Rejected";
   return "Pending";
 }
 
@@ -320,15 +328,21 @@ export function ProposalInspector({
   store,
   run,
   busy,
+  composerOpen,
+  openComposer,
+  closeComposer,
 }: {
   state: AppSnapshot;
   store: AppStore;
   run: (label: string, action: () => unknown) => void;
   busy: boolean;
+  composerOpen: boolean;
+  openComposer: () => void;
+  closeComposer: () => void;
 }) {
   const approved =
     state.proposal?.changes.filter(
-      (change) => change.applicable && change.approved,
+      (change) => change.applicable && change.decision === "approved",
     ).length ?? 0;
   return (
     <aside
@@ -337,28 +351,34 @@ export function ProposalInspector({
     >
       <div className="review-head">
         <p>{state.proposal ? "CHANGE SET 01" : "REVIEW PROPOSAL"}</p>
-        <h1>{state.proposal ? "Mobile adaptation" : "No active proposal"}</h1>
+        <h1>
+          {composerOpen
+            ? "Create proposal"
+            : (state.proposal?.title ?? "No active proposal")}
+        </h1>
         <span>
-          {state.proposal
-            ? `${state.proposal.changes.length} proposed changes`
-            : "Nothing to review yet."}
+          {composerOpen
+            ? "Draft · committed document unchanged"
+            : state.proposal
+              ? `${state.proposal.changes.length} proposed changes`
+              : "Nothing to review yet."}
         </span>
       </div>
-      {!state.proposal ? (
+      {composerOpen ? (
+        <ProposalComposer
+          state={state}
+          store={store}
+          onCancel={closeComposer}
+          onCreated={closeComposer}
+        />
+      ) : !state.proposal ? (
         <div className="empty">
           <div className="proposal-empty-icon" aria-hidden="true">
             <FileText weight="thin" />
             <i />
           </div>
           <p>Create a proposal to begin a controlled review.</p>
-          <button
-            disabled={busy}
-            onClick={() =>
-              run("Creating proposal", () =>
-                store.propose("Adapt the launch page for mobile"),
-              )
-            }
-          >
+          <button disabled={busy} onClick={openComposer}>
             Create proposal
           </button>
         </div>
@@ -372,7 +392,7 @@ export function ProposalInspector({
             >
               <button
                 className="change-focus"
-                aria-label={`Inspect ${change.label}`}
+                aria-label={`Inspect ${state.document?.elements[change.target].label ?? change.target} change`}
                 aria-current={
                   state.selectedChange === change.id ? "true" : undefined
                 }
@@ -380,13 +400,22 @@ export function ProposalInspector({
               >
                 <span className="change-no">0{index + 1}</span>
                 <span>
-                  <b>{change.label}</b>
-                  <small>{change.description}</small>
+                  <b>{change.summary}</b>
+                  <small>{change.rationale}</small>
                   <em>
-                    {state.document?.elements[change.target].label ??
-                      change.target}{" "}
-                    · {change.kind}
+                    {change.canvas} ·{" "}
+                    {change.operation.kind.replaceAll("_", " ")}
                   </em>
+                  <dl className="change-values">
+                    <div>
+                      <dt>Before</dt>
+                      <dd>{change.before}</dd>
+                    </div>
+                    <div>
+                      <dt>After</dt>
+                      <dd>{change.proposed}</dd>
+                    </div>
+                  </dl>
                 </span>
                 <span
                   className={`decision ${decisionLabel(change).toLowerCase()}`}
@@ -397,18 +426,21 @@ export function ProposalInspector({
               {change.applicable ? (
                 <div className="change-decisions">
                   <button
-                    aria-label={`Reject ${change.label}`}
-                    disabled={busy || change.rejected}
+                    aria-label={`Reject ${state.document?.elements[change.target].label ?? change.target} change`}
+                    disabled={busy || change.decision === "rejected"}
                     onClick={() => store.rejectChange(change.id)}
                   >
                     <X /> Reject
                   </button>
                   <button
-                    aria-label={`Approve ${change.label}`}
-                    aria-pressed={change.approved}
+                    aria-label={`Approve ${state.document?.elements[change.target].label ?? change.target} change`}
+                    aria-pressed={change.decision === "approved"}
                     disabled={busy}
                     onClick={() =>
-                      store.setApproval(change.id, !change.approved)
+                      store.setApproval(
+                        change.id,
+                        change.decision !== "approved",
+                      )
                     }
                   >
                     <Check /> Approve
@@ -424,30 +456,32 @@ export function ProposalInspector({
           ))}
         </div>
       )}
-      <div className="actions">
-        <button
-          disabled={!state.proposal || busy}
-          onClick={() => run("Rejecting proposal", store.reject)}
-        >
-          <X /> Reject all
-        </button>
-        <button
-          className="apply"
-          disabled={!state.proposal || approved === 0 || busy}
-          onClick={() => run("Applying approved changes", store.applyFromUi)}
-        >
-          <Check /> Apply {approved} {approved === 1 ? "change" : "changes"}
-        </button>
-        <button
-          className="agent-approval"
-          disabled={!state.proposal || approved === 0 || busy}
-          onClick={store.authorizeAgentApply}
-        >
-          {state.agentApplyAuthorized
-            ? "Agent apply allowed once"
-            : "Allow agent apply once"}
-        </button>
-      </div>
+      {!composerOpen && (
+        <div className="actions">
+          <button
+            disabled={composerOpen || !state.proposal || busy}
+            onClick={() => run("Rejecting proposal", store.reject)}
+          >
+            <X /> Reject all
+          </button>
+          <button
+            className="apply"
+            disabled={composerOpen || !state.proposal || approved === 0 || busy}
+            onClick={() => run("Applying approved changes", store.applyFromUi)}
+          >
+            <Check /> Apply {approved} {approved === 1 ? "change" : "changes"}
+          </button>
+          <button
+            className="agent-approval"
+            disabled={composerOpen || !state.proposal || approved === 0 || busy}
+            onClick={store.authorizeAgentApply}
+          >
+            {state.agentApplyAuthorized
+              ? "Agent apply allowed once"
+              : "Allow agent apply once"}
+          </button>
+        </div>
+      )}
       <div className={`webmcp ${state.webMcpAvailable ? "available" : ""}`}>
         <span /> WebMCP{" "}
         {state.webMcpAvailable
