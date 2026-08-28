@@ -1,4 +1,33 @@
 import { defineConfig, devices } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { platform } from "node:os";
+
+function assertCanonicalSnapshotUpdateHost() {
+  const updatesSnapshots = process.argv.some(
+    (argument) =>
+      argument === "--update-snapshots" ||
+      argument.startsWith("--update-snapshots="),
+  );
+  if (!updatesSnapshots) return;
+
+  let release = "";
+  try {
+    release = readFileSync("/etc/os-release", "utf8");
+  } catch {
+    // The platform check below provides the actionable error.
+  }
+  const isCanonicalHost =
+    platform() === "linux" &&
+    /^ID=ubuntu$/m.test(release) &&
+    /^VERSION_ID="?24\.04"?$/m.test(release);
+  if (!isCanonicalHost) {
+    throw new Error(
+      "Visual baselines may only be updated on Ubuntu 24.04. Run the comparison without --update-snapshots on this host.",
+    );
+  }
+}
+
+assertCanonicalSnapshotUpdateHost();
 
 export default defineConfig({
   testDir: "./e2e",
