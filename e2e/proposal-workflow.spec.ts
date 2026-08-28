@@ -168,37 +168,42 @@ test.describe("reduced motion", () => {
     await addImageChange(page);
     await page.getByRole("button", { name: "Submit proposal" }).click();
 
-    await expect(
-      page.getByRole("heading", { name: "Reduced-motion review" }),
-    ).toBeVisible();
+    expect(
+      await page
+        .getByRole("heading", { name: "Reduced-motion review" })
+        .isVisible(),
+    ).toBe(true);
     const imageChange = page.getByRole("button", {
       name: "Inspect Image change",
     });
+    expect(await imageChange.isEnabled()).toBe(true);
     await imageChange.click();
-    await expect(imageChange).toHaveAttribute("aria-current", "true");
-    await expect(
-      page.getByRole("option", {
-        name: "Image, selected, 1 proposed change",
-      }),
-    ).toBeVisible();
+    expect(await imageChange.getAttribute("aria-current")).toBe("true");
+    expect(
+      await page
+        .getByRole("option", {
+          name: "Image, selected, 1 proposed change",
+        })
+        .isVisible(),
+    ).toBe(true);
 
     const approveImage = page.getByRole("button", {
       name: "Approve Image change",
     });
-    await expect(approveImage).toBeEnabled();
-    await expect(
-      page.getByRole("button", { name: "Reject all" }),
-    ).toBeEnabled();
+    const rejectAll = page.getByRole("button", { name: "Reject all" });
+    const applyChanges = page.getByRole("button", { name: /^Apply/ });
+    expect(await approveImage.isEnabled()).toBe(true);
+    expect(await rejectAll.isEnabled()).toBe(true);
+    expect(await applyChanges.isEnabled()).toBe(false);
     await approveImage.click();
 
-    await expect(approveImage).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByText("Approved", { exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Apply 1 change" }),
-    ).toBeEnabled();
-    await expect(
-      page.getByRole("button", { name: "Reject all" }),
-    ).toBeEnabled();
+    expect(await approveImage.getAttribute("aria-pressed")).toBe("true");
+    expect(await page.getByText("Approved", { exact: true }).isVisible()).toBe(
+      true,
+    );
+    expect(await applyChanges.textContent()).toContain("Apply 1 change");
+    expect(await applyChanges.isEnabled()).toBe(true);
+    expect(await rejectAll.isEnabled()).toBe(true);
   });
 });
 
