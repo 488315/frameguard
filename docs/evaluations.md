@@ -10,8 +10,9 @@
 | Reject this proposal.                                                      | `reject_change_set`         | Proposal disappears without mutation; a provisional demo returns to the empty workspace.                     |
 | Undo the last applied change set.                                          | `undo_last_change_set`      | Prior document is restored exactly and undo becomes unavailable.                                             |
 | Export a receipt of the current review.                                    | `export_review_receipt`     | Activity reports a local receipt; returned JSON contains deterministic review state and no environment data. |
+| Refresh after explicitly enabling recovery during an active review.        | browser reload              | A fully validated review returns with fresh IDs and replayed decisions; protected changes remain blocked.    |
 
-Failure evaluations cover malformed input, invalid and protection-weakening imports, empty export, an empty objective, blocked change approval, zero selected changes, stale base revisions, duplicate apply, and empty undo history.
+Failure evaluations cover malformed input, invalid and protection-weakening imports, empty export, an empty objective, blocked change approval, zero selected changes, stale base revisions, duplicate apply, empty undo history, and malformed, oversized, stale, inconsistent, partial, or protection-tampered recovery data.
 
 ## Structured proposal example
 

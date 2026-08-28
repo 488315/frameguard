@@ -27,6 +27,20 @@ FrameGuard turns that last mile into an explicit review workflow:
 
 The application runs entirely in the browser. Review data stays local and no application server is required.
 
+### Recover an in-progress review
+
+FrameGuard still starts empty by default. From the empty workspace or an active
+review, enable **Recover in-progress reviews after refresh** to save the validated
+active proposal and its decisions in this browser. Applying or rejecting the
+proposal, resetting the workspace, or turning recovery off clears the saved draft.
+You can also clear saved bytes without changing the current live review; FrameGuard
+then labels that review unsaved until its next durable review change.
+
+Recovery recreates the review through the same import, proposal, decision, and
+protection boundaries used by the live application. Invalid or incompatible saved
+data starts empty and reports recovery as unavailable. History, undo, selection,
+activity, agent authorization, and composer text are never restored.
+
 ## Try the agent workflow
 
 Open FrameGuard in a WebMCP-capable browser and give the agent this prompt:

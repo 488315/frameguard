@@ -135,6 +135,63 @@ test("mixed proposal visibly blocks a protected logo attempt", async ({
   await expect(page.getByText("REVISION 02")).toBeVisible();
 });
 
+test("opt-in recovery restores decisions with protection and clears back to empty", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await page
+    .getByRole("checkbox", {
+      name: "Recover in-progress reviews after refresh",
+    })
+    .check();
+  await expect(page.getByRole("status")).toContainText("Recovery enabled");
+  const recoveryAxe = await new AxeBuilder({ page })
+    .include(".draft-recovery")
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(
+    recoveryAxe.violations.filter(
+      (violation) =>
+        violation.impact === "serious" || violation.impact === "critical",
+    ),
+  ).toEqual([]);
+  await openComposer(page);
+  await fillBaseProposal(page, "Recovered mixed review");
+  await page.getByRole("button", { name: "Add change" }).click();
+  await page.getByLabel("Layer for change 2").selectOption("logo");
+  await page.getByLabel("Proposed value for change 2").fill("Move logo");
+  await page
+    .getByLabel("Rationale for change 2")
+    .fill("Prove protection is rederived after refresh.");
+  await page.getByRole("button", { name: "Submit proposal" }).click();
+  await page.getByRole("button", { name: "Approve Headline change" }).click();
+  await expect(page.getByText("REVISION 01")).toBeVisible();
+
+  await page.reload();
+
+  await expect(
+    page.getByRole("heading", { name: "Recovered mixed review" }),
+  ).toBeVisible();
+  await expect(page.getByText("Approved", { exact: true })).toBeVisible();
+  await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Logo is protected/)).toBeVisible();
+  await expect(page.getByText("REVISION 01")).toBeVisible();
+  await page.getByRole("button", { name: "Apply 1 change" }).click();
+  await expect(page.getByText("REVISION 02")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Turn off and clear saved draft" })
+    .click();
+
+  await page.reload();
+
+  await expect(page.getByText("Start your first review")).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", {
+      name: "Recover in-progress reviews after refresh",
+    }),
+  ).not.toBeChecked();
+});
+
 test("reject discards the proposal without advancing revision", async ({
   page,
 }) => {

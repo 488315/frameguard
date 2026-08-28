@@ -11,10 +11,13 @@ import { createAppStore, type Activity, type AppStore } from "./store";
 import { installWebMcp } from "../webmcp/adapter";
 import { ProposalInspector, ReviewHeader, ReviewWorkspace } from "./components";
 import { LayerRail } from "./LayerRail";
+import { createBrowserDraftRecovery } from "../recovery/recovery";
 
 export function App({ store: suppliedStore }: { store?: AppStore }) {
   const store = useMemo(
-    () => suppliedStore ?? createAppStore(),
+    () =>
+      suppliedStore ??
+      createAppStore({ recovery: createBrowserDraftRecovery() }),
     [suppliedStore],
   );
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -86,6 +89,7 @@ export function App({ store: suppliedStore }: { store?: AppStore }) {
         <LayerRail state={state} store={store} />
         <ReviewWorkspace
           state={state}
+          store={store}
           busy={busy}
           openImport={() => importInput.current?.click()}
           openComposer={() => setComposerOpen(true)}
