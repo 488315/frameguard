@@ -2,8 +2,10 @@ import {
   createReviewAuthority,
   type ChangeId,
   type ProposalInput,
+  type ReviewAuthority,
   type ReviewState,
 } from "../review/review";
+import type { DraftRecovery, RecoveryStatus } from "../recovery/recovery";
 import {
   parseImportedDocument,
   type EditorDocument,
@@ -21,9 +23,11 @@ export interface AppSnapshot extends ReviewState {
   selectedLayer: ElementId | null;
   selectedChange: ChangeId | null;
   previewDocument: EditorDocument | null;
+  recovery: RecoveryStatus;
 }
 
 function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
+  Object.freeze(snapshot.recovery);
   Object.freeze(snapshot.modifiedElements);
   if (snapshot.document) {
     Object.values(snapshot.document.elements).forEach(Object.freeze);
@@ -58,13 +62,20 @@ function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
   Object.freeze(snapshot.reviewHistory);
   return Object.freeze(snapshot);
 }
-export function createAppStore() {
-  const review = createReviewAuthority();
+export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
+  const recovery = options.recovery;
+  const boot = recovery?.bootstrap();
+  const review: ReviewAuthority = boot?.authority ?? createReviewAuthority();
   let activity: Activity | null = null;
   let webMcpAvailable = false;
   let agentApplyAuthorized = false;
   let selectedLayer: ElementId | null = null;
   let selectedChange: ChangeId | null = null;
+  let recoveryStatus: RecoveryStatus = boot?.status ?? {
+    enabled: false,
+    tone: "off",
+    message: "Draft recovery is off.",
+  };
   const currentPreview = () =>
     review.getState().proposal
       ? review.preview(selectedChange ?? undefined)
@@ -77,9 +88,11 @@ export function createAppStore() {
     selectedLayer,
     selectedChange,
     previewDocument: currentPreview(),
+    recovery: recoveryStatus,
   });
   const listeners = new Set<() => void>();
-  const emit = () => {
+  const emit = (persist = false) => {
+    if (persist && recovery) recoveryStatus = recovery.sync(review);
     snapshot = freezeSnapshot({
       ...review.getState(),
       activity,
@@ -88,6 +101,7 @@ export function createAppStore() {
       selectedLayer,
       selectedChange,
       previewDocument: currentPreview(),
+      recovery: recoveryStatus,
     });
     listeners.forEach((listener) => listener());
   };
@@ -100,7 +114,7 @@ export function createAppStore() {
       const result = action();
       beforeEmit?.(result);
       activity = { tool, result: "Completed" };
-      emit();
+      emit(true);
       return result;
     } catch (error) {
       activity = {
@@ -141,7 +155,7 @@ export function createAppStore() {
       selectedChange = null;
       agentApplyAuthorized = false;
       activity = null;
-      emit();
+      emit(true);
     },
     propose(objective: string) {
       return run(
@@ -247,6 +261,18 @@ export function createAppStore() {
     },
     record(tool: string, result: string) {
       activity = { tool, result };
+      emit();
+    },
+    setRecoveryEnabled(enabled: boolean) {
+      if (!recovery) return;
+      recoveryStatus = enabled
+        ? recovery.enable(review)
+        : recovery.disableAndClear();
+      emit();
+    },
+    clearSavedDraft() {
+      if (!recovery) return;
+      recoveryStatus = recovery.clearSavedDraft(review);
       emit();
     },
   };

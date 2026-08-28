@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAppStore } from "../app/store";
+import {
+  DRAFT_RECOVERY_KEY,
+  DRAFT_RECOVERY_OPT_IN_KEY,
+  createDraftRecovery,
+} from "../recovery/recovery";
 import type { ProposalInput } from "../review/review";
 import { createReviewTools, createStaticTools, installWebMcp } from "./adapter";
 
@@ -33,6 +38,88 @@ const tool = (tools: ReturnType<typeof createStaticTools>, name: string) =>
   tools.find((candidate) => candidate.name === name)!;
 
 describe("WebMCP adapter", () => {
+  it("exposes only fresh recovered change IDs to review tools", () => {
+    const values = new Map<string, string>([
+      [DRAFT_RECOVERY_OPT_IN_KEY, "true"],
+    ]);
+    const storage: Storage = {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      getItem: (key) => values.get(key) ?? null,
+      key: (index) => [...values.keys()][index] ?? null,
+      removeItem: (key) => {
+        values.delete(key);
+      },
+      setItem: (key, value) => {
+        values.set(key, value);
+      },
+    };
+    const first = createAppStore({ recovery: createDraftRecovery(storage) });
+    const original = first.createProposal(structuredInput);
+    const restored = createAppStore({ recovery: createDraftRecovery(storage) });
+    const recovered = restored.getSnapshot().proposal!;
+    const approval = createReviewTools(restored).find(
+      (item) => item.name === "set_change_approval",
+    )!;
+    expect(approval.inputSchema).toMatchObject({
+      properties: { changeId: { enum: [recovered.changes[0].id] } },
+    });
+    expect(recovered.changes[0].id).not.toBe(original.changes[0].id);
+    expect(JSON.stringify(approval.inputSchema)).not.toContain(
+      original.changes[0].id,
+    );
+  });
+
+  it("registers no review tools for a recovery candidate that fails closed", async () => {
+    const values = new Map<string, string>([
+      [DRAFT_RECOVERY_OPT_IN_KEY, "true"],
+      [DRAFT_RECOVERY_KEY, "{"],
+    ]);
+    const storage: Storage = {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      getItem: (key) => values.get(key) ?? null,
+      key: (index) => [...values.keys()][index] ?? null,
+      removeItem: (key) => {
+        values.delete(key);
+      },
+      setItem: (key, value) => {
+        values.set(key, value);
+      },
+    };
+    const registered: string[] = [];
+    document.modelContext = {
+      registerTool: vi.fn(async (registeredTool) => {
+        registered.push(registeredTool.name);
+      }),
+    };
+    const store = createAppStore({ recovery: createDraftRecovery(storage) });
+
+    const cleanup = installWebMcp(store);
+    await vi.waitFor(() =>
+      expect(store.getSnapshot().webMcpAvailable).toBe(true),
+    );
+
+    expect(store.getSnapshot()).toMatchObject({
+      document: null,
+      proposal: null,
+      recovery: { tone: "error" },
+    });
+    expect(registered).toEqual([
+      "inspect_document",
+      "create_proposal",
+      "propose_adaptation",
+      "undo_last_change_set",
+      "export_review_receipt",
+    ]);
+    cleanup();
+    delete document.modelContext;
+  });
+
   it("exposes structured proposal creation and compatibility through one store", () => {
     const names = createStaticTools(createAppStore()).map((item) => item.name);
     expect(names).toEqual([
