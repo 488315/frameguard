@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:visual": "playwright test --config=playwright.visual.config.ts",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --check .",
