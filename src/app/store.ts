@@ -109,12 +109,13 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
     tool: string,
     action: () => T,
     beforeEmit?: (result: T) => void,
+    shouldPersist: (result: T) => boolean = () => true,
   ): T => {
     try {
       const result = action();
       beforeEmit?.(result);
       activity = { tool, result: "Completed" };
-      emit(true);
+      emit(shouldPersist(result));
       return result;
     } catch (error) {
       activity = {
@@ -253,11 +254,16 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
     },
     undo() {
       agentApplyAuthorized = false;
-      return run("undo_last_change_set", () => {
-        const result = review.undo();
-        if (result.changed) selectedChange = null;
-        return result;
-      });
+      return run(
+        "undo_last_change_set",
+        () => {
+          const result = review.undo();
+          if (result.changed) selectedChange = null;
+          return result;
+        },
+        undefined,
+        (result) => result.changed,
+      );
     },
     record(tool: string, result: string) {
       activity = { tool, result };

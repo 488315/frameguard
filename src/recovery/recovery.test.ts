@@ -341,6 +341,53 @@ describe("draft recovery adapter", () => {
     expect(storage.getItem(DRAFT_RECOVERY_OPT_IN_KEY)).toBeNull();
   });
 
+  it("does not resave an explicitly cleared draft after a no-op undo", () => {
+    const storage = enabledStorage();
+    const store = createAppStore({ recovery: createDraftRecovery(storage) });
+    store.createProposal(proposalInput);
+    store.clearSavedDraft();
+
+    expect(store.undo()).toMatchObject({ changed: false });
+    expect(storage.getItem(DRAFT_RECOVERY_KEY)).toBeNull();
+    expect(store.getSnapshot()).toMatchObject({
+      proposal: { title: proposalInput.title },
+      recovery: { enabled: true, tone: "unsaved" },
+    });
+  });
+
+  it.each(["apply", "reset", "reject"] as const)(
+    "prevents a failed clear after %s from restoring a finalized draft",
+    (action) => {
+      const storage = enabledStorage();
+      const store = createAppStore({ recovery: createDraftRecovery(storage) });
+      const proposal = store.createProposal(proposalInput);
+      if (action === "apply") store.setApproval(proposal.changes[0].id, true);
+      vi.spyOn(storage, "removeItem").mockImplementation(() => {
+        throw new Error("clear blocked");
+      });
+
+      if (action === "apply") store.applyFromUi();
+      if (action === "reset") store.resetWorkspace();
+      if (action === "reject") store.reject();
+
+      expect(storage.getItem(DRAFT_RECOVERY_KEY)).not.toBeNull();
+      expect(storage.getItem(DRAFT_RECOVERY_OPT_IN_KEY)).toBe("false");
+      expect(store.getSnapshot().recovery).toMatchObject({
+        enabled: false,
+        tone: "error",
+      });
+      expect(
+        createAppStore({
+          recovery: createDraftRecovery(storage),
+        }).getSnapshot(),
+      ).toMatchObject({
+        document: null,
+        proposal: null,
+        recovery: { enabled: false, tone: "off" },
+      });
+    },
+  );
+
   it("keeps valid in-memory operations and reports storage exceptions", () => {
     const storage = enabledStorage();
     vi.spyOn(storage, "setItem").mockImplementation(() => {

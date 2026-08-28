@@ -137,6 +137,15 @@ export function createDraftRecovery(storage: Storage): DraftRecovery {
         ? `Draft recovery unavailable: ${error.message}`
         : "Draft recovery unavailable",
   });
+  const failClosedAfterClear = (error: unknown): RecoveryStatus => {
+    try {
+      storage.setItem(DRAFT_RECOVERY_OPT_IN_KEY, "false");
+      enabled = false;
+    } catch {
+      // Preserve the original storage failure when opt-in invalidation also fails.
+    }
+    return errorStatus(error);
+  };
   const persist = (authority: ReviewAuthority): RecoveryStatus => {
     if (!enabled)
       return { enabled: false, tone: "off", message: "Draft recovery is off." };
@@ -157,7 +166,9 @@ export function createDraftRecovery(storage: Storage): DraftRecovery {
           : "Recovery enabled. New active reviews will be saved.",
       };
     } catch (error) {
-      return errorStatus(error);
+      return authority.exportActiveDraft()
+        ? errorStatus(error)
+        : failClosedAfterClear(error);
     }
   };
   return {
@@ -217,7 +228,7 @@ export function createDraftRecovery(storage: Storage): DraftRecovery {
           message: "Draft recovery is off and saved draft cleared.",
         };
       } catch (error) {
-        return errorStatus(error);
+        return failClosedAfterClear(error);
       }
     },
     clearSavedDraft(authority) {
@@ -237,7 +248,7 @@ export function createDraftRecovery(storage: Storage): DraftRecovery {
             : "Saved draft cleared. Current review was not changed.",
         };
       } catch (error) {
-        return errorStatus(error);
+        return failClosedAfterClear(error);
       }
     },
   };
