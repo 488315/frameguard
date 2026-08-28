@@ -1,0 +1,56 @@
+name: Bug report
+description: Report reproducible behavior that is incorrect or unsafe.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve FrameGuard. Please remove private document content from screenshots and logs.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the visible behavior and what you expected instead.
+      placeholder: A protected change appeared eligible for approval after...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include the smallest reliable sequence, including any agent prompt or WebMCP tool call.
+      placeholder: |
+        1. Open the live demo
+        2. Create a proposal with...
+        3. Select...
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 149.0...
+    validations:
+      required: true
+  - type: dropdown
+    id: webmcp
+    attributes:
+      label: Was WebMCP enabled?
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional evidence
+      description: Add a redacted screenshot, console error, or review receipt when useful.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets and private document content from this report.
+          required: true

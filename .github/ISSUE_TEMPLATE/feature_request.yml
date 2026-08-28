@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a focused improvement to the human-agent review workflow.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What practical task is difficult today, and who encounters it?
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Proposed workflow
+      description: Describe what the human sees, what the agent can do, and where confirmation occurs.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Safety and state boundaries
+      description: Explain how protected elements, committed state, validation, undo, and UI synchronization should behave.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Note any smaller workflow or existing tool that could solve the problem.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Contribution check
+      options:
+        - label: I checked the existing issues for a similar request.
+          required: true
