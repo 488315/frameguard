@@ -150,6 +150,58 @@ test("reject discards the proposal without advancing revision", async ({
   await page.screenshot({ path: `${screenshotDir}/10-rejected.png` });
 });
 
+test.describe("reduced motion", () => {
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("proposal review controls remain immediately usable", async ({
+    page,
+  }) => {
+    await page.goto("./");
+    expect(
+      await page.evaluate(
+        () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+      ),
+    ).toBe(true);
+
+    await openComposer(page);
+    await fillBaseProposal(page, "Reduced-motion review");
+    await addImageChange(page);
+    await page.getByRole("button", { name: "Submit proposal" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "Reduced-motion review" }),
+    ).toBeVisible();
+    const imageChange = page.getByRole("button", {
+      name: "Inspect Image change",
+    });
+    await imageChange.click();
+    await expect(imageChange).toHaveAttribute("aria-current", "true");
+    await expect(
+      page.getByRole("option", {
+        name: "Image, selected, 1 proposed change",
+      }),
+    ).toBeVisible();
+
+    const approveImage = page.getByRole("button", {
+      name: "Approve Image change",
+    });
+    await expect(approveImage).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Reject all" }),
+    ).toBeEnabled();
+    await approveImage.click();
+
+    await expect(approveImage).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("Approved", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Apply 1 change" }),
+    ).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Reject all" }),
+    ).toBeEnabled();
+  });
+});
+
 test("proposal composer remains usable at required desktop resolutions", async ({
   page,
 }) => {
