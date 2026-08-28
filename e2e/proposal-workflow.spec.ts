@@ -251,3 +251,44 @@ test.describe("high-density visual evidence", () => {
     });
   });
 });
+
+test.describe("reduced-motion coverage", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("review controls are immediately usable with prefers-reduced-motion", async ({
+    page,
+  }) => {
+    await page.goto("./");
+    await openComposer(page);
+    await fillBaseProposal(page, "Reduced-motion review");
+    await addImageChange(page);
+    await page.getByRole("button", { name: "Submit proposal" }).click();
+
+    // The selected state and primary review controls must be usable without
+    // waiting out a transition or animation timeout.
+    await expect(
+      page.getByRole("option", {
+        name: "Headline, selected, 1 proposed change",
+      }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Selected Headline layer")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Inspect Image change" }),
+    ).toBeEnabled();
+    await page.getByRole("button", { name: "Approve Headline change" }).click();
+    await expect(
+      page.getByRole("option", {
+        name: "Headline, no proposed changes",
+      }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Approve Image change" }).click();
+    await expect(
+      page.getByRole("button", { name: "Apply 2 changes" }),
+    ).toBeEnabled();
+    await page.getByRole("button", { name: "Apply 2 changes" }).click();
+    await expect(page.getByText("REVISION 02")).toBeVisible();
+    await page.screenshot({
+      path: `${screenshotDir}/reduced-motion-applied.png`,
+    });
+  });
+});
