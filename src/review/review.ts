@@ -28,6 +28,13 @@ export type ChangeSet = Proposal;
 export type { ProposalInput, ReviewState } from "./models";
 export { ProposalValidationError } from "./models";
 
+export interface ActiveDraftRecovery {
+  origin: "provisional" | "imported";
+  document: EditorDocument | null;
+  proposal: ProposalInput;
+  decisions: Proposal["changes"][number]["decision"][];
+}
+
 export interface ReviewAuthority {
   getState(): ReviewState;
   loadDocument(nextDocument: EditorDocument): ReviewState;
@@ -40,6 +47,7 @@ export interface ReviewAuthority {
   apply(): ReviewState;
   reject(): ReviewState;
   undo(): { changed: boolean; document: EditorDocument | null };
+  exportActiveDraft(): ActiveDraftRecovery | null;
   __testOnlyAdvanceRevision(): void;
 }
 
@@ -500,6 +508,24 @@ export function createReviewAuthority(
       proposal = null;
       proposalOwnsDocument = false;
       return { changed: true, document: cloneDocument(document) };
+    },
+    exportActiveDraft() {
+      if (!proposal || !document) return null;
+      return {
+        origin: proposalOwnsDocument ? "provisional" : "imported",
+        document: proposalOwnsDocument ? null : cloneDocument(document),
+        proposal: {
+          expectedRevision: proposal.baseRevision,
+          title: proposal.title,
+          objective: proposal.objective,
+          changes: proposal.changes.map((change) => ({
+            target: change.target,
+            operation: structuredClone(change.operation),
+            rationale: change.rationale,
+          })),
+        },
+        decisions: proposal.changes.map((change) => change.decision),
+      };
     },
     __testOnlyAdvanceRevision() {
       if (!document) throw new Error("No workspace loaded");

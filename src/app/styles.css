@@ -516,6 +516,67 @@ select:focus-visible {
 .empty button:hover:not(:disabled) {
   border-color: #292824;
 }
+.draft-recovery {
+  width: min(100%, 430px);
+  margin: 20px 0 0;
+  border: 1px solid #c8c1b5;
+  padding: 12px 14px;
+  text-align: left;
+}
+.draft-recovery.compact {
+  width: 100%;
+  margin: 0 0 10px;
+}
+.draft-recovery legend {
+  padding: 0 5px;
+  color: #625d55;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.draft-recovery label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 650;
+}
+.draft-recovery input {
+  width: 17px;
+  height: 17px;
+  accent-color: #b93622;
+}
+.draft-recovery input:focus-visible,
+.draft-recovery button:focus-visible {
+  outline: 2px solid #a33625;
+  outline-offset: 2px;
+}
+.draft-recovery p,
+.draft-recovery [role="status"] {
+  margin: 7px 0 0 25px;
+  color: #625d55;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.draft-recovery [role="status"].error {
+  color: #a33625;
+}
+.draft-recovery [role="status"].unsaved {
+  color: #795915;
+}
+.draft-recovery-actions {
+  display: flex;
+  gap: 6px;
+  margin: 9px 0 0 25px;
+}
+.draft-recovery-actions button {
+  min-height: 30px;
+  border: 1px solid #928b80;
+  background: transparent;
+  padding: 5px 8px;
+  font-size: 9px;
+}
 .viewport-tools button {
   min-width: 32px;
   justify-content: center;
@@ -531,6 +592,10 @@ select:focus-visible {
   overflow: auto;
   display: flex;
   align-items: flex-start;
+}
+.canvas-scroll:focus-visible {
+  outline: 2px solid #a33625;
+  outline-offset: -2px;
 }
 .canvases {
   --preview-zoom: 1;

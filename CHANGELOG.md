@@ -3,6 +3,15 @@
 This document records the user-visible evolution of FrameGuard. FrameGuard follows
 [Semantic Versioning](https://semver.org/); dates use ISO 8601.
 
+## [Unreleased]
+
+### Opt-in browser-local draft recovery
+
+- Added an explicit recovery control that keeps default startup empty and can clear saved bytes without mutating the live review.
+- Reconstructs saved provisional or imported reviews through isolated production validation, with fresh IDs and rederived protection and applicability.
+- Persists only bounded, versioned authority-owned proposal input, origin/document, and decisions; transient UI, WebMCP, authorization, and history state remain excluded.
+- Fails closed for malformed, stale, inconsistent, oversized, partial, or protection-tampered data and visibly reports browser-storage failures.
+
 ## [0.2.0] - 2026-08-26
 
 FrameGuard 0.2.0 turns the original visual-review prototype into a controlled,

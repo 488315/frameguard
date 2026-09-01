@@ -135,6 +135,63 @@ test("mixed proposal visibly blocks a protected logo attempt", async ({
   await expect(page.getByText("REVISION 02")).toBeVisible();
 });
 
+test("opt-in recovery restores decisions with protection and clears back to empty", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await page
+    .getByRole("checkbox", {
+      name: "Recover in-progress reviews after refresh",
+    })
+    .check();
+  await expect(page.getByRole("status")).toContainText("Recovery enabled");
+  const recoveryAxe = await new AxeBuilder({ page })
+    .include(".draft-recovery")
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(
+    recoveryAxe.violations.filter(
+      (violation) =>
+        violation.impact === "serious" || violation.impact === "critical",
+    ),
+  ).toEqual([]);
+  await openComposer(page);
+  await fillBaseProposal(page, "Recovered mixed review");
+  await page.getByRole("button", { name: "Add change" }).click();
+  await page.getByLabel("Layer for change 2").selectOption("logo");
+  await page.getByLabel("Proposed value for change 2").fill("Move logo");
+  await page
+    .getByLabel("Rationale for change 2")
+    .fill("Prove protection is rederived after refresh.");
+  await page.getByRole("button", { name: "Submit proposal" }).click();
+  await page.getByRole("button", { name: "Approve Headline change" }).click();
+  await expect(page.getByText("REVISION 01")).toBeVisible();
+
+  await page.reload();
+
+  await expect(
+    page.getByRole("heading", { name: "Recovered mixed review" }),
+  ).toBeVisible();
+  await expect(page.getByText("Approved", { exact: true })).toBeVisible();
+  await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Logo is protected/)).toBeVisible();
+  await expect(page.getByText("REVISION 01")).toBeVisible();
+  await page.getByRole("button", { name: "Apply 1 change" }).click();
+  await expect(page.getByText("REVISION 02")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Turn off and clear saved draft" })
+    .click();
+
+  await page.reload();
+
+  await expect(page.getByText("Start your first review")).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", {
+      name: "Recover in-progress reviews after refresh",
+    }),
+  ).not.toBeChecked();
+});
+
 test("reject discards the proposal without advancing revision", async ({
   page,
 }) => {
@@ -148,6 +205,63 @@ test("reject discards the proposal without advancing revision", async ({
   ).toBeVisible();
   await expect(page.getByText("REVISION 01")).toBeVisible();
   await page.screenshot({ path: `${screenshotDir}/10-rejected.png` });
+});
+
+test.describe("reduced motion", () => {
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("proposal review controls remain immediately usable", async ({
+    page,
+  }) => {
+    await page.goto("./");
+    expect(
+      await page.evaluate(
+        () => matchMedia("(prefers-reduced-motion: reduce)").matches,
+      ),
+    ).toBe(true);
+
+    await openComposer(page);
+    await fillBaseProposal(page, "Reduced-motion review");
+    await addImageChange(page);
+    await page.getByRole("button", { name: "Submit proposal" }).click();
+
+    expect(
+      await page
+        .getByRole("heading", { name: "Reduced-motion review" })
+        .isVisible(),
+    ).toBe(true);
+    const imageChange = page.getByRole("button", {
+      name: "Inspect Image change",
+    });
+    expect(await imageChange.isEnabled()).toBe(true);
+    await imageChange.click();
+    expect(await imageChange.getAttribute("aria-current")).toBe("true");
+    expect(
+      await page
+        .getByRole("option", {
+          name: "Image, selected, 1 proposed change",
+        })
+        .isVisible(),
+    ).toBe(true);
+
+    const approveImage = page.getByRole("button", {
+      name: "Approve Image change",
+    });
+    const rejectAll = page.getByRole("button", { name: "Reject all" });
+    const applyChanges = page.getByRole("button", { name: /^Apply/ });
+    expect(await approveImage.isEnabled()).toBe(true);
+    expect(await rejectAll.isEnabled()).toBe(true);
+    expect(await applyChanges.isEnabled()).toBe(false);
+    await approveImage.click();
+
+    expect(await approveImage.getAttribute("aria-pressed")).toBe("true");
+    expect(await page.getByText("Approved", { exact: true }).isVisible()).toBe(
+      true,
+    );
+    expect(await applyChanges.textContent()).toContain("Apply 1 change");
+    expect(await applyChanges.isEnabled()).toBe(true);
+    expect(await rejectAll.isEnabled()).toBe(true);
+  });
 });
 
 test("proposal composer remains usable at required desktop resolutions", async ({
@@ -248,47 +362,6 @@ test.describe("high-density visual evidence", () => {
     ).toBeVisible();
     await page.screenshot({
       path: `${screenshotDir}/layers-high-dpi-1440x900.png`,
-    });
-  });
-});
-
-test.describe("reduced-motion coverage", () => {
-  test.use({ reducedMotion: "reduce" });
-
-  test("review controls are immediately usable with prefers-reduced-motion", async ({
-    page,
-  }) => {
-    await page.goto("./");
-    await openComposer(page);
-    await fillBaseProposal(page, "Reduced-motion review");
-    await addImageChange(page);
-    await page.getByRole("button", { name: "Submit proposal" }).click();
-
-    // The selected state and primary review controls must be usable without
-    // waiting out a transition or animation timeout.
-    await expect(
-      page.getByRole("option", {
-        name: "Headline, selected, 1 proposed change",
-      }),
-    ).toBeVisible();
-    await expect(page.getByLabel("Selected Headline layer")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Inspect Image change" }),
-    ).toBeEnabled();
-    await page.getByRole("button", { name: "Approve Headline change" }).click();
-    await expect(
-      page.getByRole("option", {
-        name: "Headline, no proposed changes",
-      }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Approve Image change" }).click();
-    await expect(
-      page.getByRole("button", { name: "Apply 2 changes" }),
-    ).toBeEnabled();
-    await page.getByRole("button", { name: "Apply 2 changes" }).click();
-    await expect(page.getByText("REVISION 02")).toBeVisible();
-    await page.screenshot({
-      path: `${screenshotDir}/reduced-motion-applied.png`,
     });
   });
 });

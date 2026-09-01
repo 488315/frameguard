@@ -167,11 +167,13 @@ function LaunchCanvas({
 
 export function ReviewWorkspace({
   state,
+  store,
   busy,
   openImport,
   openComposer,
 }: {
   state: AppSnapshot;
+  store: AppStore;
   busy: boolean;
   openImport: () => void;
   openComposer: () => void;
@@ -224,6 +226,7 @@ export function ReviewWorkspace({
               Import layout
             </button>
           </div>
+          <RecoveryControls state={state} store={store} />
         </div>
       </section>
     );
@@ -237,6 +240,7 @@ export function ReviewWorkspace({
         </div>
         <p>Nothing changes without approval.</p>
       </div>
+      <RecoveryControls state={state} store={store} compact />
       <div className="viewport-tools" aria-label="Preview zoom controls">
         <button
           aria-label="Zoom out"
@@ -256,7 +260,7 @@ export function ReviewWorkspace({
           <MagnifyingGlassPlus />
         </button>
       </div>
-      <div className="canvas-scroll">
+      <div className="canvas-scroll" tabIndex={0} aria-label="Canvas previews">
         <div
           className={`canvases ${showMobileDiff ? "with-mobile-diff" : ""}`}
           style={{ "--preview-zoom": zoomScale } as React.CSSProperties}
@@ -305,6 +309,55 @@ export function ReviewWorkspace({
         </div>
       </div>
     </section>
+  );
+}
+
+function RecoveryControls({
+  state,
+  store,
+  compact = false,
+}: {
+  state: AppSnapshot;
+  store: AppStore;
+  compact?: boolean;
+}) {
+  return (
+    <fieldset className={`draft-recovery ${compact ? "compact" : ""}`}>
+      <legend>Refresh recovery</legend>
+      <label>
+        <input
+          type="checkbox"
+          checked={state.recovery.enabled}
+          aria-describedby="draft-recovery-description draft-recovery-status"
+          onChange={(event) =>
+            store.setRecoveryEnabled(event.currentTarget.checked)
+          }
+        />
+        Recover in-progress reviews after refresh
+      </label>
+      <p id="draft-recovery-description">
+        Active review inputs and decisions are saved only in this browser.
+        History, selection, and agent authorization are never saved.
+      </p>
+      <div
+        id="draft-recovery-status"
+        role="status"
+        aria-live="polite"
+        className={state.recovery.tone}
+      >
+        {state.recovery.message}
+      </div>
+      {state.recovery.enabled && (
+        <div className="draft-recovery-actions">
+          <button type="button" onClick={store.clearSavedDraft}>
+            Clear saved draft
+          </button>
+          <button type="button" onClick={() => store.setRecoveryEnabled(false)}>
+            Turn off and clear saved draft
+          </button>
+        </div>
+      )}
+    </fieldset>
   );
 }
 

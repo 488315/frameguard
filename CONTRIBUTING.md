@@ -47,6 +47,25 @@ npm run test:e2e
 
 Add focused tests for changed behavior. Browser-visible work should cover both the rendered result and the underlying review state; safety changes should include rejection and no-partial-mutation cases.
 
+### Visual-regression baselines
+
+Reviewed screenshot baselines are canonical only when generated with Chromium on Ubuntu 24.04. Run the comparison in that environment after installing the lockfile dependencies and browser:
+
+```sh
+npm ci
+npx playwright install --with-deps chromium
+npm run test:visual
+```
+
+After a deliberate visual change, inspect every changed PNG before updating the reviewed baselines:
+
+```sh
+npm run test:visual -- --update-snapshots
+npm run test:visual
+```
+
+Do not update baselines from Windows or another Linux distribution. The dedicated visual-regression workflow compares the committed Ubuntu/Chromium images and never updates them.
+
 ## Pull requests
 
 A useful pull request includes:

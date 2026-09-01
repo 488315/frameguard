@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "visual-regression.spec.ts",
   fullyParallel: false,
   workers: 1,
   retries: 0,
