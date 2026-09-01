@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { createAppStore } from "../app/store";
 import { auditDocument, createInitialDocument } from "../editor/document";
+import { createTestProposal } from "../test/proposal";
 import { serializeReceipt } from "./receipt";
 
 test("refuses to export an empty workspace", () => {
@@ -27,7 +28,7 @@ test("serializes a deterministic secret-free review receipt", () => {
 
 test("excludes unapproved proposal data from the committed-state receipt", () => {
   const store = createAppStore();
-  store.propose("private draft objective");
+  createTestProposal(store, "private draft objective");
   const receipt = serializeReceipt(store);
   expect(receipt).not.toContain("private draft objective");
   expect(receipt).not.toContain("activeProposal");
@@ -35,7 +36,10 @@ test("excludes unapproved proposal data from the committed-state receipt", () =>
 
 test("records the proposal, human decisions, blocked changes, and resulting revision", () => {
   const store = createAppStore();
-  const proposal = store.propose("Prepare a controlled mobile pass");
+  const proposal = createTestProposal(
+    store,
+    "Prepare a controlled mobile pass",
+  );
   store.setApproval(proposal.changes[0].id, true);
   store.rejectChange(proposal.changes[1].id);
   store.applyFromUi();

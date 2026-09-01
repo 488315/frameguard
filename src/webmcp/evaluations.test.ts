@@ -50,7 +50,7 @@ const proposalInput = {
 } satisfies ProposalInput;
 
 describe("executable WebMCP evaluation cases", () => {
-  it("completes the documented inspect, propose, approve, authorize, apply, undo, and export sequence", async () => {
+  it("completes inspect, propose, human review, delegated apply, undo, and receipt", async () => {
     const store = createAppStore();
     const empty = parseToolResult(
       await findTool(createStaticTools(store), "inspect_document").execute({}),
@@ -70,11 +70,11 @@ describe("executable WebMCP evaluation cases", () => {
       { target: "logo", applicable: false },
     ]);
 
+    expect(createContextualTools(store).map((tool) => tool.name)).not.toContain(
+      "set_change_approval",
+    );
     for (const change of proposal.changes.filter((item) => item.applicable)) {
-      await findTool(
-        createContextualTools(store),
-        "set_change_approval",
-      ).execute({ changeId: change.id, approved: true });
+      store.setApproval(change.id, true);
     }
     expect(
       createContextualTools(store).map((candidate) => candidate.name),
@@ -128,13 +128,12 @@ describe("executable WebMCP evaluation cases", () => {
     });
   });
 
-  it("keeps the exact proposal and compatibility tools distinguishable", () => {
+  it("keeps proposal creation typed and human decisions unavailable to agents", () => {
     const tools = createContextualTools(createAppStore());
     expect(findTool(tools, "create_proposal").description).toContain(
       "caller-specified edits",
     );
-    expect(findTool(tools, "propose_adaptation").description).toContain(
-      "predefined three-change demo",
-    );
+    expect(tools.map((tool) => tool.name)).not.toContain("propose_adaptation");
+    expect(tools.map((tool) => tool.name)).not.toContain("set_change_approval");
   });
 });

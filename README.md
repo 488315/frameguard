@@ -5,7 +5,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/488315/frameguard)](https://github.com/488315/frameguard/releases/latest)
 [![Live demo](https://img.shields.io/badge/live_demo-open-bb3b28)](https://488315.github.io/frameguard/)
 
-**Keep AI-assisted visual edits fast without letting an agent move the logo, rewrite legal copy, or publish an unreviewed layout.**
+**Bounded visual change control for AI agents.**
+
+Agents may propose. Policy constrains. Humans authorize. FrameGuard proves what changed.
 
 FrameGuard lets a browser agent propose structured visual changes while a human compares the current and proposed designs, approves each eligible change, and sees protected elements blocked before anything is committed.
 
@@ -51,18 +53,18 @@ The attempted logo edit appears in the review but remains blocked. Drafting, pre
 
 ## WebMCP tool surface
 
-| Tool                     | Purpose                                                            |
-| ------------------------ | ------------------------------------------------------------------ |
-| `inspect_document`       | Read the committed document and active review state.               |
-| `create_proposal`        | Submit an exact, bounded set of proposed visual changes.           |
-| `propose_adaptation`     | Route a compatibility request through the same proposal authority. |
-| `set_change_approval`    | Approve or reject one eligible change in the active proposal.      |
-| `apply_approved_changes` | Atomically commit only the approved changes.                       |
-| `reject_change_set`      | Discard the active proposal without changing the document.         |
-| `undo_last_change_set`   | Restore the previous committed document.                           |
-| `export_review_receipt`  | Return a local record of the completed review.                     |
+| Tool                     | Purpose                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| `inspect_document`       | Read the committed document and active review state.              |
+| `create_proposal`        | Submit an exact, bounded set of proposed visual changes.          |
+| `inspect_proposal`       | Read policy, human-review, and application eligibility state.     |
+| `revise_proposal`        | Replace an active proposal before human review begins.            |
+| `withdraw_proposal`      | Withdraw an uncommitted agent proposal without document mutation. |
+| `apply_approved_changes` | Atomically commit only the approved changes.                      |
+| `undo_last_change_set`   | Restore the previous committed document.                          |
+| `export_review_receipt`  | Return a local record of the completed review.                    |
 
-Tool registrations and schemas are generated from current application state. Creation tools are absent during an active review, undo and export appear only when their prerequisites exist, review tools expose only current applicable change identifiers, and apply appears only after one-use human authorization. Agent actions and human actions use the same store and validation path, keeping the visible UI synchronized with the underlying review state. Tool outputs that can contain imported or user-authored content are marked as untrusted for the browser agent.
+Tool registrations and schemas are generated from current application state. Creation tools are absent during an active review, undo and export appear only when their prerequisites exist, and apply appears only after one-use human authorization. Approval and rejection remain human UI actions; no WebMCP tool can promote agent authority. Each authorization is bound to one proposal, base revision, and exact approved change set, and its consumption is recorded in the committed receipt. Agent actions and human actions use the same store and validation path, keeping the visible UI synchronized with the underlying review state. Tool outputs that can contain imported or user-authored content are marked as untrusted for the browser agent.
 
 ## Run locally
 

@@ -328,6 +328,67 @@ describe("review authority", () => {
     );
   });
 
+  it("rejects authorization scoped to another proposal without partial mutation", () => {
+    const review = createReviewAuthority({ idFactory: deterministicIds() });
+    const proposal = review.createProposal(proposalInput([headlineChange()]));
+    review.setApproval(proposal.changes[0].id, true);
+    const before = review.getState().document;
+
+    expect(() =>
+      review.apply({
+        id: "authorization-1",
+        proposalId: "proposal-other",
+        baseRevision: proposal.baseRevision,
+        approvedChangeIds: [proposal.changes[0].id],
+        status: "valid",
+      }),
+    ).toThrow("AUTHORIZATION_SCOPE_MISMATCH");
+    expect(review.getState()).toMatchObject({
+      document: before,
+      proposal: { id: proposal.id },
+      reviewHistory: [],
+    });
+  });
+
+  it("revises an unreviewed proposal and preserves provisional workspace ownership", () => {
+    const review = createReviewAuthority({ idFactory: deterministicIds() });
+    const original = review.createProposal(proposalInput([headlineChange()]));
+
+    const revised = review.reviseProposal(
+      original.id,
+      proposalInput([headlineChange("A revised mobile headline.")]),
+    );
+
+    expect(revised).toMatchObject({
+      id: "proposal-2",
+      changes: [{ id: "change-2", proposed: "A revised mobile headline." }],
+    });
+    expect(revised.id).not.toBe(original.id);
+    const withdrawn = review.withdraw();
+    expect(withdrawn).toMatchObject({
+      document: null,
+      proposal: null,
+      reviewHistory: [{ proposalId: revised.id, outcome: "withdrawn" }],
+    });
+  });
+
+  it("refuses proposal revision after human review begins without losing state", () => {
+    const review = createReviewAuthority({ idFactory: deterministicIds() });
+    const proposal = review.createProposal(proposalInput([headlineChange()]));
+    review.setApproval(proposal.changes[0].id, true);
+
+    expect(() =>
+      review.reviseProposal(
+        proposal.id,
+        proposalInput([headlineChange("Replacement")]),
+      ),
+    ).toThrow("PROPOSAL_REVIEW_STARTED");
+    expect(review.getState().proposal).toMatchObject({
+      id: proposal.id,
+      changes: [{ decision: "approved" }],
+    });
+  });
+
   it("rejects without mutation and undo restores the exact prior document", () => {
     const review = createReviewAuthority({ idFactory: deterministicIds() });
     review.loadDocument(createInitialDocument());

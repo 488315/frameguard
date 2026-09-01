@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialDocument } from "../editor/document";
+import { createTestProposal } from "../test/proposal";
 import { createAppStore } from "./store";
 
 const customProposal = {
@@ -60,7 +61,7 @@ describe("app store review focus", () => {
 
   it("selects layers and focuses their proposal change", () => {
     const store = createAppStore();
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     const image = proposal.changes.find((change) => change.target === "image")!;
     store.selectLayer("image");
     expect(store.getSnapshot()).toMatchObject({
@@ -112,7 +113,7 @@ describe("app store review focus", () => {
     const unsubscribe = store.subscribe(() =>
       snapshots.push(store.getSnapshot()),
     );
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     unsubscribe();
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0]).toMatchObject({
@@ -124,7 +125,7 @@ describe("app store review focus", () => {
 
   it("selects a change and its affected layer together", () => {
     const store = createAppStore();
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     const logo = proposal.changes.find((change) => change.target === "logo")!;
     store.selectChange(logo.id);
     expect(store.getSnapshot()).toMatchObject({
@@ -135,7 +136,7 @@ describe("app store review focus", () => {
 
   it("records an individual rejection without changing the document", () => {
     const store = createAppStore();
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     const initial = store.getSnapshot().document;
     store.rejectChange(proposal.changes[0].id);
     expect(store.getSnapshot().proposal?.changes[0].decision).toBe("rejected");
@@ -144,7 +145,7 @@ describe("app store review focus", () => {
 
   it("preserves proposal focus when undo has no committed history", () => {
     const store = createAppStore();
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     const result = store.undo();
     expect(result.changed).toBe(false);
     expect(store.getSnapshot()).toMatchObject({
@@ -156,7 +157,7 @@ describe("app store review focus", () => {
 
   it("clears proposal focus only after a successful apply", () => {
     const store = createAppStore();
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     store.setApproval(proposal.changes[0].id, true);
     store.applyFromUi();
     expect(store.getSnapshot()).toMatchObject({
@@ -194,7 +195,7 @@ describe("app store review focus", () => {
 
   it("resets all transient and committed workspace state", () => {
     const store = createAppStore();
-    const proposal = store.propose("adapt");
+    const proposal = createTestProposal(store, "adapt");
     store.setApproval(proposal.changes[0].id, true);
     store.authorizeAgentApply();
     store.resetWorkspace();
@@ -207,5 +208,29 @@ describe("app store review focus", () => {
       selectedChange: null,
       agentApplyAuthorized: false,
     });
+  });
+
+  it("binds delegated application authority to one proposal revision and approved set", () => {
+    const store = createAppStore();
+    const proposal = createTestProposal(store, "adapt");
+    store.setApproval(proposal.changes[0].id, true);
+
+    store.authorizeAgentApply();
+
+    expect(store.getSnapshot().applicationAuthorization).toMatchObject({
+      proposalId: proposal.id,
+      baseRevision: 1,
+      approvedChangeIds: [proposal.changes[0].id],
+      status: "valid",
+    });
+    store.applyFromAgent();
+    expect(store.getSnapshot().applicationAuthorization).toBeNull();
+    expect(store.getSnapshot().reviewHistory.at(-1)).toMatchObject({
+      authorization: {
+        proposalId: proposal.id,
+        consumed: true,
+      },
+    });
+    expect(() => store.applyFromAgent()).toThrow("AUTHORIZATION_REQUIRED");
   });
 });

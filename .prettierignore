@@ -1,2 +1,5 @@
 dist
 node_modules
+.codex-remote-attachments
+.impeccable
+test-results

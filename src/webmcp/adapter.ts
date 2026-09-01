@@ -102,6 +102,19 @@ const proposalInputSchema = {
   additionalProperties: false,
 } as const;
 
+const reviseProposalInputSchema = {
+  ...proposalInputSchema,
+  properties: {
+    proposalId: {
+      type: "string",
+      minLength: 1,
+      description: "Exact active proposal ID returned by inspect_proposal.",
+    },
+    ...proposalInputSchema.properties,
+  },
+  required: ["proposalId", ...proposalInputSchema.required],
+} as const;
+
 function assertProposalInput(input: Record<string, unknown>): ProposalInput {
   assertExactKeys(input, ["expectedRevision", "title", "objective", "changes"]);
   if (!Array.isArray(input.changes)) {
@@ -218,52 +231,20 @@ export function createContextualTools(store: AppStore): WebMcpTool[] {
   const state = store.getSnapshot();
   const tools: WebMcpTool[] = [];
   if (!state.proposal) {
-    tools.push(
-      {
-        name: "create_proposal",
-        title: "Create proposal",
-        description:
-          "Creates an exact revision-bound proposal when no review is active. Use this for caller-specified edits; FrameGuard derives before-values, protection, and applicability.",
-        inputSchema: proposalInputSchema,
-        annotations: untrustedOutput,
-        async execute(input) {
-          assertObject(input);
-          const result = store.createProposal(assertProposalInput(input));
-          await afterPaint();
-          return textResult(result);
-        },
+    tools.push({
+      name: "create_proposal",
+      title: "Create proposal",
+      description:
+        "Creates an exact revision-bound proposal when no review is active. Use this for caller-specified edits; FrameGuard derives before-values, protection, and applicability.",
+      inputSchema: proposalInputSchema,
+      annotations: untrustedOutput,
+      async execute(input) {
+        assertObject(input);
+        const result = store.createProposal(assertProposalInput(input));
+        await afterPaint();
+        return textResult(result);
       },
-      {
-        name: "propose_adaptation",
-        title: "Propose adaptation",
-        description:
-          "Creates FrameGuard's predefined three-change demo proposal from one adaptation objective when no review is active. Use create_proposal for caller-specified edits.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            objective: {
-              type: "string",
-              minLength: 1,
-              description:
-                "Goal used to label the predefined mobile adaptation demo.",
-            },
-          },
-          required: ["objective"],
-          additionalProperties: false,
-        },
-        annotations: untrustedOutput,
-        async execute(input) {
-          assertObject(input);
-          assertExactKeys(input, ["objective"]);
-          if (typeof input.objective !== "string" || !input.objective.trim()) {
-            throw new Error("objective must be a non-empty string");
-          }
-          const result = store.propose(input.objective);
-          await afterPaint();
-          return textResult(result);
-        },
-      },
-    );
+    });
   }
   if (state.canUndo && !state.proposal) {
     tools.push({
@@ -308,48 +289,83 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
   const snapshot = store.getSnapshot();
   const proposal = snapshot.proposal;
   if (!proposal) return [];
-  const applicableIds = proposal.changes
-    .filter((change) => change.applicable)
-    .map((change) => change.id);
-  const tools: WebMcpTool[] = [];
-  if (applicableIds.length) {
-    tools.push({
-      name: "set_change_approval",
-      title: "Set change approval",
+  const tools: WebMcpTool[] = [
+    {
+      name: "inspect_proposal",
+      title: "Inspect proposal",
       description:
-        "Selects or deselects one applicable change in the active proposal by its change ID.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          changeId: {
-            type: "string",
-            enum: applicableIds,
-            description:
-              "Current applicable change ID returned by inspect_document.",
+        "Reads the active revision-bound proposal, policy results, human decisions, and application eligibility without changing review state.",
+      inputSchema: emptySchema,
+      annotations: { ...untrustedOutput, readOnlyHint: true },
+      async execute(input) {
+        assertObject(input);
+        assertExactKeys(input, []);
+        const current = store.getSnapshot();
+        const authorization = current.applicationAuthorization;
+        store.record("inspect_proposal", `Inspected ${proposal.id}`);
+        await afterPaint();
+        return textResult({
+          proposal,
+          policy: {
+            permittedChangeIds: proposal.changes
+              .filter((change) => change.applicable)
+              .map((change) => change.id),
+            blockedChangeIds: proposal.changes
+              .filter((change) => !change.applicable)
+              .map((change) => change.id),
           },
-          approved: {
-            type: "boolean",
-            description:
-              "True selects the change; false returns it to pending.",
+          review: {
+            approvedChangeIds: proposal.changes
+              .filter((change) => change.decision === "approved")
+              .map((change) => change.id),
+            rejectedChangeIds: proposal.changes
+              .filter((change) => change.decision === "rejected")
+              .map((change) => change.id),
+            pendingChangeIds: proposal.changes
+              .filter((change) => change.decision === "pending")
+              .map((change) => change.id),
           },
-        },
-        required: ["changeId", "approved"],
-        additionalProperties: false,
+          application: {
+            eligible: Boolean(authorization),
+            authorization: authorization
+              ? {
+                  id: authorization.id,
+                  proposalId: authorization.proposalId,
+                  baseRevision: authorization.baseRevision,
+                  approvedChangeIds: authorization.approvedChangeIds,
+                  status: authorization.status,
+                }
+              : null,
+          },
+        });
       },
+    },
+  ];
+  if (proposal.changes.every((change) => change.decision === "pending")) {
+    tools.push({
+      name: "revise_proposal",
+      title: "Revise proposal",
+      description:
+        "Replaces the agent's active unreviewed proposal with a new typed revision-bound proposal. It refuses after any human decision.",
+      inputSchema: reviseProposalInputSchema,
       annotations: untrustedOutput,
       async execute(input) {
         assertObject(input);
-        assertExactKeys(input, ["changeId", "approved"]);
-        if (
-          typeof input.changeId !== "string" ||
-          !applicableIds.includes(input.changeId)
-        ) {
-          throw new Error("changeId must identify an applicable change");
+        assertExactKeys(input, [
+          "proposalId",
+          "expectedRevision",
+          "title",
+          "objective",
+          "changes",
+        ]);
+        if (typeof input.proposalId !== "string" || !input.proposalId) {
+          throw new Error("proposalId must identify the active proposal");
         }
-        if (typeof input.approved !== "boolean") {
-          throw new Error("approved must be a boolean");
-        }
-        const result = store.setApproval(input.changeId, input.approved);
+        const { proposalId, ...proposalInput } = input;
+        const result = store.reviseProposal(
+          proposalId,
+          assertProposalInput(proposalInput),
+        );
         await afterPaint();
         return textResult(result);
       },
@@ -376,16 +392,16 @@ export function createReviewTools(store: AppStore): WebMcpTool[] {
     });
   }
   tools.push({
-    name: "reject_change_set",
-    title: "Reject change set",
+    name: "withdraw_proposal",
+    title: "Withdraw proposal",
     description:
-      "Discards the active proposal without mutating the committed document.",
+      "Withdraws the agent's active proposal without mutating the committed document or making a human review decision.",
     inputSchema: emptySchema,
     annotations: untrustedOutput,
     async execute(input) {
       assertObject(input);
       assertExactKeys(input, []);
-      const result = store.reject();
+      const result = store.withdrawProposal();
       await afterPaint();
       return textResult(result);
     },

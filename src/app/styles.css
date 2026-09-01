@@ -791,15 +791,18 @@ select:focus-visible {
 }
 .blocked-vector {
   position: absolute;
-  top: 2.5%;
-  left: 10%;
-  right: 10%;
-  height: 5%;
+  z-index: 1;
+  top: 10%;
+  left: 0;
+  right: 0;
+  min-height: 28px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 5px;
+  padding: 5px 5%;
   background: #fffdf7e8;
+  border-bottom: 1px solid #e1b5ac;
   color: #b53624;
   font-size: 8px;
   letter-spacing: 0.06em;
