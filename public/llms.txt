@@ -1,13 +1,13 @@
 # FrameGuard
 
-FrameGuard is a local human-in-the-loop visual change-review demonstration for WebMCP.
+FrameGuard is bounded visual change control for AI agents.
 
 ## Agent behavior
 
 - Inspect the document before proposing a change.
 - Keep protected Logo and Legal elements unchanged.
-- Present proposed changes visibly for human review.
-- Never apply agent-selected changes without authorization in the FrameGuard UI.
+- Present proposed changes visibly for human review; human decisions are not agent tools.
+- Apply only the human-approved subset after scoped one-use authorization in FrameGuard.
 - Keep exports local and secret-free.
 
 ## Documentation

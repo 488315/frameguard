@@ -9,6 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import { createInitialDocument } from "../editor/document";
+import { createTestProposal } from "../test/proposal";
 import { App } from "./App";
 import { createAppStore } from "./store";
 
@@ -241,7 +242,7 @@ test("selects dynamic rows and synchronizes the non-mutating proposal preview", 
 
 test("exposes selected, proposed, and protected layer semantics", () => {
   const store = createAppStore();
-  store.propose("Review the mobile layout");
+  createTestProposal(store, "Review the mobile layout");
   render(<App store={store} />);
 
   expect(
@@ -372,7 +373,10 @@ test("keeps externally selected layer rows visible within the navigator", async 
 test("keeps protected layers inspectable while mutation remains blocked", async () => {
   const user = userEvent.setup();
   const store = createAppStore();
-  const proposal = store.propose("Review the protected brand boundary");
+  const proposal = createTestProposal(
+    store,
+    "Review the protected brand boundary",
+  );
   const logoChange = proposal.changes.find(
     (change) => change.target === "logo",
   )!;

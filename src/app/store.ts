@@ -12,6 +12,7 @@ import {
   type ElementId,
 } from "../editor/document";
 import { resolveRelatedChangeId } from "./layers";
+import type { ApplicationAuthorization } from "../review/models";
 export interface Activity {
   tool: string;
   result: string;
@@ -20,6 +21,7 @@ export interface AppSnapshot extends ReviewState {
   activity: Activity | null;
   webMcpAvailable: boolean;
   agentApplyAuthorized: boolean;
+  applicationAuthorization: ApplicationAuthorization | null;
   selectedLayer: ElementId | null;
   selectedChange: ChangeId | null;
   previewDocument: EditorDocument | null;
@@ -28,6 +30,10 @@ export interface AppSnapshot extends ReviewState {
 
 function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
   Object.freeze(snapshot.recovery);
+  if (snapshot.applicationAuthorization) {
+    Object.freeze(snapshot.applicationAuthorization.approvedChangeIds);
+    Object.freeze(snapshot.applicationAuthorization);
+  }
   Object.freeze(snapshot.modifiedElements);
   if (snapshot.document) {
     Object.values(snapshot.document.elements).forEach(Object.freeze);
@@ -57,6 +63,10 @@ function freezeSnapshot(snapshot: AppSnapshot): AppSnapshot {
     Object.freeze(entry.approvedChangeIds);
     Object.freeze(entry.rejectedChangeIds);
     Object.freeze(entry.blockedChangeIds);
+    if (entry.authorization) {
+      Object.freeze(entry.authorization.approvedChangeIds);
+      Object.freeze(entry.authorization);
+    }
     Object.freeze(entry);
   });
   Object.freeze(snapshot.reviewHistory);
@@ -68,7 +78,7 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
   const review: ReviewAuthority = boot?.authority ?? createReviewAuthority();
   let activity: Activity | null = null;
   let webMcpAvailable = false;
-  let agentApplyAuthorized = false;
+  let applicationAuthorization: ApplicationAuthorization | null = null;
   let selectedLayer: ElementId | null = null;
   let selectedChange: ChangeId | null = null;
   let recoveryStatus: RecoveryStatus = boot?.status ?? {
@@ -84,7 +94,10 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
     ...review.getState(),
     activity,
     webMcpAvailable,
-    agentApplyAuthorized,
+    agentApplyAuthorized: applicationAuthorization !== null,
+    applicationAuthorization: applicationAuthorization
+      ? structuredClone(applicationAuthorization)
+      : null,
     selectedLayer,
     selectedChange,
     previewDocument: currentPreview(),
@@ -97,7 +110,10 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
       ...review.getState(),
       activity,
       webMcpAvailable,
-      agentApplyAuthorized,
+      agentApplyAuthorized: applicationAuthorization !== null,
+      applicationAuthorization: applicationAuthorization
+        ? structuredClone(applicationAuthorization)
+        : null,
       selectedLayer,
       selectedChange,
       previewDocument: currentPreview(),
@@ -146,7 +162,7 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
         () => {
           selectedLayer = null;
           selectedChange = null;
-          agentApplyAuthorized = false;
+          applicationAuthorization = null;
         },
       );
     },
@@ -154,22 +170,12 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
       review.reset();
       selectedLayer = null;
       selectedChange = null;
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       activity = null;
       emit(true);
     },
-    propose(objective: string) {
-      return run(
-        "propose_adaptation",
-        () => review.propose(objective),
-        (result) => {
-          selectedChange = result.changes[0].id;
-          selectedLayer = result.changes[0].target;
-        },
-      );
-    },
     createProposal(input: ProposalInput) {
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       return run(
         "create_proposal",
         () => review.createProposal(input),
@@ -179,12 +185,23 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
         },
       );
     },
+    reviseProposal(proposalId: string, input: ProposalInput) {
+      applicationAuthorization = null;
+      return run(
+        "revise_proposal",
+        () => review.reviseProposal(proposalId, input),
+        (result) => {
+          selectedChange = result.changes[0]?.id ?? null;
+          selectedLayer = result.changes[0]?.target ?? null;
+        },
+      );
+    },
     setApproval(id: ChangeId, approved: boolean) {
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       return run("set_change_approval", () => review.setApproval(id, approved));
     },
     rejectChange(id: ChangeId) {
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       return run("reject_change", () => review.rejectChange(id));
     },
     selectLayer(id: ElementId) {
@@ -211,7 +228,17 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
       ) {
         throw new Error("Approve at least one applicable change first");
       }
-      agentApplyAuthorized = true;
+      applicationAuthorization = {
+        id: `authorization-${crypto.randomUUID()}`,
+        proposalId: active.id,
+        baseRevision: active.baseRevision,
+        approvedChangeIds: active.changes
+          .filter(
+            (change) => change.applicable && change.decision === "approved",
+          )
+          .map((change) => change.id),
+        status: "valid",
+      };
       activity = {
         tool: "human_authorization",
         result: "Agent apply authorized",
@@ -219,20 +246,23 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
       emit();
     },
     applyFromAgent() {
-      if (!agentApplyAuthorized) {
-        throw new Error("Human authorization required in the FrameGuard UI");
+      if (!applicationAuthorization) {
+        throw new Error(
+          "AUTHORIZATION_REQUIRED: grant one-use authorization in the FrameGuard UI",
+        );
       }
-      agentApplyAuthorized = false;
+      const authorization = structuredClone(applicationAuthorization);
       return run(
         "apply_approved_changes",
-        () => review.apply(),
+        () => review.apply(authorization),
         () => {
+          applicationAuthorization = null;
           selectedChange = null;
         },
       );
     },
     applyFromUi() {
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       return run(
         "apply_approved_changes",
         () => review.apply(),
@@ -242,7 +272,7 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
       );
     },
     reject() {
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       selectedChange = null;
       return run(
         "reject_change_set",
@@ -252,8 +282,19 @@ export function createAppStore(options: { recovery?: DraftRecovery } = {}) {
         },
       );
     },
+    withdrawProposal() {
+      applicationAuthorization = null;
+      selectedChange = null;
+      return run(
+        "withdraw_proposal",
+        () => review.withdraw(),
+        (result) => {
+          if (!result.document) selectedLayer = null;
+        },
+      );
+    },
     undo() {
-      agentApplyAuthorized = false;
+      applicationAuthorization = null;
       return run(
         "undo_last_change_set",
         () => {

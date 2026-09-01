@@ -8,7 +8,9 @@ This document records the user-visible evolution of FrameGuard. FrameGuard follo
 ### WebMCP contract and review safety
 
 - Registers state-dependent tools only while their document, review, undo, or one-use authorization prerequisites hold.
-- Exposes agent-apply authorization during inspection, distinguishes exact proposals from the predefined adaptation demo, and marks user-authored or imported tool output as untrusted.
+- Removes agent-facing approval decisions and the predefined adaptation path; adds proposal inspection, pre-review revision, and non-mutating withdrawal tools.
+- Replaces transient Boolean delegation with a one-use capability bound to proposal, base revision, and exact approved change IDs, with consumption recorded in committed review history.
+- Exposes scoped agent-apply authorization during inspection and marks user-authored or imported tool output as untrusted.
 - Adds an executable deterministic WebMCP workflow gate and a separate browser-agent evaluation protocol.
 - Prevents undo from being offered while a newer proposal is active, avoiding accidental loss of in-progress review work.
 

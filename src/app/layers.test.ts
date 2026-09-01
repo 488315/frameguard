@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAppStore } from "./store";
+import { createTestProposal } from "../test/proposal";
 import { deriveLayerNavigatorItems } from "./layers";
 
 const twoHeadlineChanges = {
@@ -56,7 +57,7 @@ describe("layer navigator derivation", () => {
 
   it("derives protected state from the committed document", () => {
     const store = createAppStore();
-    store.propose("Review the mobile layout");
+    createTestProposal(store, "Review the mobile layout");
     const layers = deriveLayerNavigatorItems(store.getSnapshot());
 
     expect(layers.find((layer) => layer.id === "logo")?.protected).toBe(true);

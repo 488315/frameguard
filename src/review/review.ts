@@ -13,6 +13,7 @@ import {
 } from "./operations";
 import {
   ProposalValidationError,
+  type ApplicationAuthorization,
   type FinalizedReview,
   type IdFactory,
   type Proposal,
@@ -40,12 +41,13 @@ export interface ReviewAuthority {
   loadDocument(nextDocument: EditorDocument): ReviewState;
   reset(): ReviewState;
   createProposal(input: ProposalInput): Proposal;
-  propose(objective: string): Proposal;
+  reviseProposal(proposalId: string, input: ProposalInput): Proposal;
   preview(changeId?: ProposalChangeId): EditorDocument | null;
   setApproval(id: ProposalChangeId, approved: boolean): Proposal;
   rejectChange(id: ProposalChangeId): Proposal;
-  apply(): ReviewState;
+  apply(authorization?: ApplicationAuthorization): ReviewState;
   reject(): ReviewState;
+  withdraw(): ReviewState;
   undo(): { changed: boolean; document: EditorDocument | null };
   exportActiveDraft(): ActiveDraftRecovery | null;
   __testOnlyAdvanceRevision(): void;
@@ -236,6 +238,7 @@ function finalized(
   proposal: Proposal,
   outcome: FinalizedReview["outcome"],
   resultingRevision: number | null,
+  authorization: ApplicationAuthorization | null = null,
 ): FinalizedReview {
   return {
     proposalId: proposal.id,
@@ -264,6 +267,15 @@ function finalized(
     blockedChangeIds: proposal.changes
       .filter((change) => !change.applicable)
       .map((change) => change.id),
+    authorization: authorization
+      ? {
+          id: authorization.id,
+          proposalId: authorization.proposalId,
+          baseRevision: authorization.baseRevision,
+          approvedChangeIds: [...authorization.approvedChangeIds],
+          consumed: true,
+        }
+      : null,
   };
 }
 
@@ -385,42 +397,28 @@ export function createReviewAuthority(
       return state();
     },
     createProposal,
-    propose(objective) {
-      const revision = document?.revision ?? starterDocument().revision;
-      return createProposal({
-        expectedRevision: revision,
-        title: "Mobile adaptation",
-        objective,
-        changes: [
-          {
-            target: "headline",
-            operation: {
-              kind: "set_text",
-              canvas: "mobile",
-              value: "Make room for\nwhat comes next.",
-            },
-            rationale: "Improve narrow-screen line balance.",
-          },
-          {
-            target: "image",
-            operation: {
-              kind: "set_image_position",
-              canvas: "mobile",
-              value: "68% center",
-            },
-            rationale: "Keep the subject visible in the narrow crop.",
-          },
-          {
-            target: "logo",
-            operation: {
-              kind: "set_text",
-              canvas: "mobile",
-              value: "Move logo into the image field",
-            },
-            rationale: "Test the protected brand boundary.",
-          },
-        ],
-      });
+    reviseProposal(proposalId, input) {
+      if (!proposal) throw new Error("No active proposal");
+      if (proposal.id !== proposalId) {
+        throw new Error(`Unknown proposal ID: ${proposalId}`);
+      }
+      if (proposal.changes.some((change) => change.decision !== "pending")) {
+        throw new Error(
+          "PROPOSAL_REVIEW_STARTED: withdraw and create a new proposal instead",
+        );
+      }
+      const previous = proposal;
+      const previousOwnsDocument = proposalOwnsDocument;
+      proposal = null;
+      try {
+        const revised = createProposal(input);
+        proposalOwnsDocument = previousOwnsDocument;
+        return revised;
+      } catch (error) {
+        proposal = previous;
+        proposalOwnsDocument = previousOwnsDocument;
+        throw error;
+      }
     },
     preview(changeId) {
       if (!document) return null;
@@ -443,7 +441,7 @@ export function createReviewAuthority(
         change.decision = "rejected";
       });
     },
-    apply() {
+    apply(authorization) {
       if (!proposal) throw new Error("No active proposal");
       if (!document) throw new Error("No workspace loaded");
       if (proposal.baseRevision !== document.revision) {
@@ -454,6 +452,22 @@ export function createReviewAuthority(
       );
       if (approved.length === 0) {
         throw new Error("Select at least one applicable change");
+      }
+      if (authorization) {
+        const approvedIds = approved.map((change) => change.id);
+        if (
+          authorization.status !== "valid" ||
+          authorization.proposalId !== proposal.id ||
+          authorization.baseRevision !== proposal.baseRevision ||
+          authorization.approvedChangeIds.length !== approvedIds.length ||
+          authorization.approvedChangeIds.some(
+            (id, index) => id !== approvedIds[index],
+          )
+        ) {
+          throw new Error(
+            "AUTHORIZATION_SCOPE_MISMATCH: authorization does not match the active approved proposal",
+          );
+        }
       }
       const next = cloneDocument(document);
       const changedTargets: ElementId[] = [];
@@ -477,7 +491,12 @@ export function createReviewAuthority(
       document = next;
       modifiedElements = changedTargets;
       reviewHistory.push(
-        finalized(completedProposal, "applied", next.revision),
+        finalized(
+          completedProposal,
+          "applied",
+          next.revision,
+          authorization ?? null,
+        ),
       );
       proposal = null;
       proposalOwnsDocument = false;
@@ -486,6 +505,18 @@ export function createReviewAuthority(
     reject() {
       if (!proposal) throw new Error("No active proposal");
       reviewHistory.push(finalized(proposal, "rejected", null));
+      proposal = null;
+      if (proposalOwnsDocument) {
+        document = null;
+        modifiedElements = [];
+        history = [];
+      }
+      proposalOwnsDocument = false;
+      return state();
+    },
+    withdraw() {
+      if (!proposal) throw new Error("No active proposal");
+      reviewHistory.push(finalized(proposal, "withdrawn", null));
       proposal = null;
       if (proposalOwnsDocument) {
         document = null;

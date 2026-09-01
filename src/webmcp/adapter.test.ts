@@ -6,6 +6,7 @@ import {
   createDraftRecovery,
 } from "../recovery/recovery";
 import type { ProposalInput } from "../review/review";
+import { createTestProposal } from "../test/proposal";
 import {
   createContextualTools,
   createReviewTools,
@@ -44,7 +45,18 @@ const tool = (tools: WebMcpTool[], name: string) =>
   tools.find((candidate) => candidate.name === name)!;
 
 describe("WebMCP adapter", () => {
-  it("exposes only fresh recovered change IDs to review tools", () => {
+  it("keeps human review decisions outside the agent tool surface", () => {
+    const store = createAppStore();
+    store.createProposal(structuredInput);
+
+    const names = createContextualTools(store).map((item) => item.name);
+    expect(names).toContain("inspect_proposal");
+    expect(names).toContain("revise_proposal");
+    expect(names).toContain("withdraw_proposal");
+    expect(names).not.toContain("set_change_approval");
+  });
+
+  it("exposes only fresh recovered change IDs through proposal inspection", async () => {
     const values = new Map<string, string>([
       [DRAFT_RECOVERY_OPT_IN_KEY, "true"],
     ]);
@@ -66,16 +78,14 @@ describe("WebMCP adapter", () => {
     const original = first.createProposal(structuredInput);
     const restored = createAppStore({ recovery: createDraftRecovery(storage) });
     const recovered = restored.getSnapshot().proposal!;
-    const approval = createReviewTools(restored).find(
-      (item) => item.name === "set_change_approval",
-    )!;
-    expect(approval.inputSchema).toMatchObject({
-      properties: { changeId: { enum: [recovered.changes[0].id] } },
-    });
+    const inspection = await tool(
+      createReviewTools(restored),
+      "inspect_proposal",
+    ).execute({});
+    const result = JSON.parse(inspection.content[0].text);
+    expect(result.proposal.changes[0].id).toBe(recovered.changes[0].id);
     expect(recovered.changes[0].id).not.toBe(original.changes[0].id);
-    expect(JSON.stringify(approval.inputSchema)).not.toContain(
-      original.changes[0].id,
-    );
+    expect(inspection.content[0].text).not.toContain(original.changes[0].id);
   });
 
   it("registers no review tools for a recovery candidate that fails closed", async () => {
@@ -115,23 +125,18 @@ describe("WebMCP adapter", () => {
       proposal: null,
       recovery: { tone: "error" },
     });
-    expect(registered).toEqual([
-      "inspect_document",
-      "create_proposal",
-      "propose_adaptation",
-    ]);
+    expect(registered).toEqual(["inspect_document", "create_proposal"]);
     cleanup();
     delete document.modelContext;
   });
 
-  it("exposes structured proposal creation and compatibility through one store", () => {
+  it("exposes one structured proposal creation tool", () => {
     const store = createAppStore();
     expect(createStaticTools(store).map((item) => item.name)).toEqual([
       "inspect_document",
     ]);
     expect(createContextualTools(store).map((item) => item.name)).toEqual([
       "create_proposal",
-      "propose_adaptation",
     ]);
   });
 
@@ -207,25 +212,21 @@ describe("WebMCP adapter", () => {
     });
   });
 
-  it("builds approval guidance from the current applicable change IDs", async () => {
+  it("reports policy and human decisions without exposing approval mutation", async () => {
     const store = createAppStore();
     await tool(createContextualTools(store), "create_proposal").execute(
       structuredInput,
     );
-    const applicable = store
-      .getSnapshot()
-      .proposal!.changes.filter((change) => change.applicable);
-    const approval = createReviewTools(store).find(
-      (item) => item.name === "set_change_approval",
-    )!;
-    expect(approval.inputSchema).toMatchObject({
-      properties: { changeId: { enum: applicable.map((change) => change.id) } },
-    });
-    await expect(
-      approval.execute({ changeId: "old-change-id", approved: true }),
-    ).rejects.toThrow("applicable change");
-    await approval.execute({ changeId: applicable[0].id, approved: true });
-    expect(store.getSnapshot().proposal?.changes[0].decision).toBe("approved");
+    const result = await tool(
+      createReviewTools(store),
+      "inspect_proposal",
+    ).execute({});
+    const inspection = JSON.parse(result.content[0].text);
+    expect(inspection.policy.permittedChangeIds).toHaveLength(1);
+    expect(inspection.review.pendingChangeIds).toHaveLength(2);
+    expect(createReviewTools(store).map((item) => item.name)).not.toContain(
+      "set_change_approval",
+    );
   });
 
   it("requires and consumes one human authorization for agent apply", async () => {
@@ -245,7 +246,7 @@ describe("WebMCP adapter", () => {
       (item) => item.name === "apply_approved_changes",
     )!;
     await expect(apply.execute({})).resolves.toBeDefined();
-    await expect(apply.execute({})).rejects.toThrow("Human authorization");
+    await expect(apply.execute({})).rejects.toThrow("AUTHORIZATION_REQUIRED");
   });
 
   it("exposes authorization state and marks agent-visible content untrusted", async () => {
@@ -278,7 +279,6 @@ describe("WebMCP adapter", () => {
     const store = createAppStore();
     expect(createContextualTools(store).map((item) => item.name)).toEqual([
       "create_proposal",
-      "propose_adaptation",
     ]);
     const proposal = store.createProposal({
       ...structuredInput,
@@ -286,8 +286,9 @@ describe("WebMCP adapter", () => {
     });
     expect(createContextualTools(store).map((item) => item.name)).toEqual([
       "export_review_receipt",
-      "set_change_approval",
-      "reject_change_set",
+      "inspect_proposal",
+      "revise_proposal",
+      "withdraw_proposal",
     ]);
     store.setApproval(proposal.changes[0].id, true);
     expect(createContextualTools(store).map((item) => item.name)).not.toContain(
@@ -300,7 +301,6 @@ describe("WebMCP adapter", () => {
     store.applyFromUi();
     expect(createContextualTools(store).map((item) => item.name)).toEqual([
       "create_proposal",
-      "propose_adaptation",
       "undo_last_change_set",
       "export_review_receipt",
     ]);
@@ -322,7 +322,7 @@ describe("WebMCP adapter", () => {
     );
   });
 
-  it("aborts old review registrations and registers new dynamic IDs", async () => {
+  it("aborts old review registrations when proposal identity changes", async () => {
     const registered: Array<{
       name: string;
       schema: Record<string, unknown>;
@@ -348,27 +348,23 @@ describe("WebMCP adapter", () => {
     });
     await vi.waitFor(() =>
       expect(
-        registered.filter((item) => item.name === "set_change_approval"),
+        registered.filter((item) => item.name === "inspect_proposal"),
       ).toHaveLength(1),
     );
-    const firstApproval = registered.find(
-      (item) => item.name === "set_change_approval",
+    const firstInspection = registered.find(
+      (item) => item.name === "inspect_proposal",
     )!;
-    store.reject();
+    store.withdrawProposal();
     const second = store.createProposal({
       ...structuredInput,
       changes: [structuredInput.changes[0]],
     });
     await vi.waitFor(() =>
       expect(
-        registered.filter((item) => item.name === "set_change_approval"),
+        registered.filter((item) => item.name === "inspect_proposal"),
       ).toHaveLength(2),
     );
-    const approvals = registered.filter(
-      (item) => item.name === "set_change_approval",
-    );
-    expect(firstApproval.signal?.aborted).toBe(true);
-    expect(approvals[0].schema).not.toEqual(approvals[1].schema);
+    expect(firstInspection.signal?.aborted).toBe(true);
     expect(first.id).not.toBe(second.id);
     cleanup();
     delete document.modelContext;
@@ -391,13 +387,13 @@ describe("WebMCP adapter", () => {
       changes: [structuredInput.changes[0]],
     });
     await vi.waitFor(() =>
-      expect(
-        registered.some((item) => item.name === "set_change_approval"),
-      ).toBe(true),
+      expect(registered.some((item) => item.name === "inspect_proposal")).toBe(
+        true,
+      ),
     );
     store.setApproval(proposal.changes[0].id, true);
-    const approvalRegistration = registered.find(
-      (item) => item.name === "set_change_approval",
+    const proposalRegistration = registered.find(
+      (item) => item.name === "inspect_proposal",
     )!;
 
     store.authorizeAgentApply();
@@ -407,7 +403,7 @@ describe("WebMCP adapter", () => {
       ).toBe(true),
     );
 
-    expect(approvalRegistration.signal?.aborted).toBe(true);
+    expect(proposalRegistration.signal?.aborted).toBe(true);
     cleanup();
     delete document.modelContext;
   });
@@ -429,7 +425,7 @@ describe("WebMCP adapter", () => {
     );
     expect(store.getSnapshot().webMcpAvailable).toBe(false);
     expect(attempted).toEqual(["inspect_document"]);
-    expect(() => store.propose("UI remains usable")).not.toThrow();
+    expect(() => createTestProposal(store, "UI remains usable")).not.toThrow();
     cleanup();
     delete document.modelContext;
   });

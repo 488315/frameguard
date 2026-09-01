@@ -5,6 +5,21 @@ export type ProposalChangeId = string;
 export type ProposalStatus = "active";
 export type ProposalDecision = "pending" | "approved" | "rejected";
 
+export interface ApplicationAuthorization {
+  id: string;
+  proposalId: ProposalId;
+  baseRevision: number;
+  approvedChangeIds: ProposalChangeId[];
+  status: "valid";
+}
+
+export interface ConsumedAuthorization extends Omit<
+  ApplicationAuthorization,
+  "status"
+> {
+  consumed: true;
+}
+
 export type ChangeOperation =
   | { kind: "set_text"; canvas: Canvas; value: string }
   | { kind: "set_image_position"; canvas: Canvas; value: string };
@@ -51,7 +66,7 @@ export interface FinalizedReview {
   objective: string;
   baseRevision: number;
   resultingRevision: number | null;
-  outcome: "applied" | "rejected";
+  outcome: "applied" | "rejected" | "withdrawn";
   changes: Array<{
     id: ProposalChangeId;
     summary: string;
@@ -66,6 +81,7 @@ export interface FinalizedReview {
   approvedChangeIds: ProposalChangeId[];
   rejectedChangeIds: ProposalChangeId[];
   blockedChangeIds: ProposalChangeId[];
+  authorization: ConsumedAuthorization | null;
 }
 
 export interface ReviewState {

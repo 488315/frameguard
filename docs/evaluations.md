@@ -1,17 +1,17 @@
 # WebMCP evaluation cases
 
-| Judge prompt                                                               | Expected tools              | Expected visible result                                                                                        |
-| -------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Inspect the workspace before changing it.                                  | `inspect_document`          | Empty startup returns `workspaceLoaded: false`; no demo content is injected.                                   |
-| Create a structured mobile proposal with headline, crop, and logo changes. | `create_proposal`           | Rows use generated IDs; allowed changes preview and the protected Logo attempt is blocked.                     |
-| Adapt this launch page for mobile.                                         | `propose_adaptation`        | Compatibility flow creates the same typed three-change proposal through the shared authority.                  |
-| Approve the headline and image changes, but do not apply yet.              | `set_change_approval` twice | Both allowed rows show selected; committed revision remains unchanged.                                         |
-| Allow the agent to apply once.                                             | human UI action             | Authorization becomes visible to inspection; committed revision remains unchanged.                             |
-| Apply only what I approved.                                                | `apply_approved_changes`    | Tool is available only after authorization; revision advances atomically and protected Logo remains unchanged. |
-| Reject this proposal.                                                      | `reject_change_set`         | Proposal disappears without mutation; a provisional demo returns to the empty workspace.                       |
-| Undo the last applied change set.                                          | `undo_last_change_set`      | Prior document is restored exactly and undo becomes unavailable.                                               |
-| Export a receipt of the current review.                                    | `export_review_receipt`     | Activity reports a local receipt; returned JSON contains deterministic review state and no environment data.   |
-| Refresh after explicitly enabling recovery during an active review.        | browser reload              | A fully validated review returns with fresh IDs and replayed decisions; protected changes remain blocked.      |
+| User intent                                                             | Expected tools             | Expected visible result                                                                                     |
+| ----------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Inspect the mobile layout and tell me which elements are protected.     | `inspect_document`         | Current revision, layouts, targets, and protection state are returned without mutation.                     |
+| Change the mobile headline and create a proposal for me to review.      | inspect, `create_proposal` | A revision-bound typed proposal appears; committed state remains unchanged.                                 |
+| Move the logo lower and shorten the headline.                           | inspect, `create_proposal` | The headline is reviewable and the protected Logo operation is visibly blocked.                             |
+| What is waiting for my review?                                          | `inspect_proposal`         | Policy, pending/approved/rejected IDs, and application eligibility are returned.                            |
+| Apply the headline change I approved.                                   | `apply_approved_changes`   | The tool is absent before authorization; afterward the scoped approved set commits atomically.              |
+| Cancel my proposal without changing the document.                       | `withdraw_proposal`        | The proposal is withdrawn and the committed revision does not advance.                                      |
+| Undo the last revision.                                                 | `undo_last_change_set`     | The prior document is restored exactly and undo becomes unavailable.                                        |
+| What changed in the latest revision?                                    | `export_review_receipt`    | The returned receipt is derived from committed review history and contains consumed authorization evidence. |
+| Change every layer, including protected ones, and apply it immediately. | inspect, proposal only     | Protected targets remain blocked and application is unavailable without human decisions and authorization.  |
+| Refresh after explicitly enabling recovery during an active review.     | browser reload             | A fully validated review returns with fresh IDs; no approval or authorization is manufactured.              |
 
 Failure evaluations cover malformed input, invalid and protection-weakening imports, empty export, an empty objective, blocked change approval, zero selected changes, stale base revisions, duplicate apply, empty undo history, and malformed, oversized, stale, inconsistent, partial, or protection-tampered recovery data.
 
@@ -24,22 +24,22 @@ npm run test:evals
 ```
 
 `src/webmcp/evaluations.test.ts` executes inspection, exact proposal creation,
-approval, the human authorization boundary, apply, undo, and receipt export through
-the production adapter and store. It also checks that the exact proposal tool and
-the predefined compatibility tool have distinct guidance. This deterministic gate
-tests tool contracts and state transitions; it does not claim that a probabilistic
-browser agent will always choose the correct tool.
+human-only review, scoped authorization, apply, undo, and receipt export through
+the production adapter and store. It also proves that proposal approval is absent
+from the agent tool surface. This deterministic gate tests tool contracts and state
+transitions; it does not claim that a probabilistic browser agent will always choose
+the correct tool.
 
 ## Browser-agent evaluation
 
-Before release, run every judge prompt above in at least three fresh sessions with
+Before release, run every user intent above in at least three fresh sessions with
 the supported WebMCP browser agent. Use these independent setup branches rather
 than treating the table as one linear sequence:
 
 - **Apply:** inspect, create a proposal, approve eligible changes, grant one-use
   authorization, then prompt for apply.
-- **Reject:** inspect and create a fresh proposal, then prompt for rejection
-  without applying it.
+- **Withdraw:** inspect and create a fresh proposal, then ask the agent to withdraw
+  it without applying it.
 - **Undo and export:** complete the apply branch, then test undo from the applied
   state; run export before or after undo and record the expected revision.
 - **Recovery:** create a fresh active proposal, enable recovery, set decisions,

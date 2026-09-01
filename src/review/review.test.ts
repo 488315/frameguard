@@ -328,6 +328,28 @@ describe("review authority", () => {
     );
   });
 
+  it("rejects authorization scoped to another proposal without partial mutation", () => {
+    const review = createReviewAuthority({ idFactory: deterministicIds() });
+    const proposal = review.createProposal(proposalInput([headlineChange()]));
+    review.setApproval(proposal.changes[0].id, true);
+    const before = review.getState().document;
+
+    expect(() =>
+      review.apply({
+        id: "authorization-1",
+        proposalId: "proposal-other",
+        baseRevision: proposal.baseRevision,
+        approvedChangeIds: [proposal.changes[0].id],
+        status: "valid",
+      }),
+    ).toThrow("AUTHORIZATION_SCOPE_MISMATCH");
+    expect(review.getState()).toMatchObject({
+      document: before,
+      proposal: { id: proposal.id },
+      reviewHistory: [],
+    });
+  });
+
   it("rejects without mutation and undo restores the exact prior document", () => {
     const review = createReviewAuthority({ idFactory: deterministicIds() });
     review.loadDocument(createInitialDocument());
