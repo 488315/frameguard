@@ -261,6 +261,12 @@ test.describe("reduced motion", () => {
     expect(await applyChanges.textContent()).toContain("Apply 1 change");
     expect(await applyChanges.isEnabled()).toBe(true);
     expect(await rejectAll.isEnabled()).toBe(true);
+
+    await applyChanges.click();
+    await expect(page.getByText("REVISION 02")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "No active proposal" }),
+    ).toBeVisible();
   });
 });
 
