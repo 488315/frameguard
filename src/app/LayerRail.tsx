@@ -55,7 +55,10 @@ export function LayerRail({
     options?.[movement]?.focus();
   };
   return (
-    <aside className="layers" aria-label="Layers navigator">
+    <aside
+      className={`layers${state.document ? "" : " layers-empty-state"}`}
+      aria-label="Layers navigator"
+    >
       <h1>Layers</h1>
       {!state.document ? (
         <div className="layers-empty">

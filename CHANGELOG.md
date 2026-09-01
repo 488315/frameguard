@@ -5,9 +5,9 @@ This document records the user-visible evolution of FrameGuard. FrameGuard follo
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-09-01
+## [0.3.1] - 2026-09-01
 
-FrameGuard 0.3.0 strengthens the product around one clear boundary: agents may
+FrameGuard 0.3.1 strengthens the product around one clear boundary: agents may
 propose visual work, policy constrains it, and only a human can grant the exact
 one-use authority needed to commit approved changes. It also adds browser-local
 draft recovery, a synchronized Layers navigator, deterministic visual-regression
@@ -37,6 +37,14 @@ and withdrawal leaves no committed mutation behind.
 - Separates the blocked protected-Logo annotation from the masthead so policy evidence stays readable without obscuring the design.
 - Improves desktop readability and makes the mobile before/after comparison explicitly two-up, with clearer changed-headline evidence.
 
+### Mobile first-run layout
+
+- Compacts the empty Layers summary at phone widths instead of reserving the active navigator's full height and clipping its guidance below a viewport-relative margin.
+- Removes the empty-card upward translation on mobile so the workspace title and status remain unobstructed.
+- Uses the full narrow content width for the first-review card while retaining comfortable padding and touch targets.
+- Collapses the desktop-sized empty proposal body and disabled action bar on mobile, leaving one clear creation path and a concise WebMCP availability status.
+- Adds a `390x844` browser regression that measures the Layers panel, guards heading/card separation, rejects an oversized proposal inspector, and records reviewed full-page evidence.
+
 ### Opt-in browser-local draft recovery
 
 - Added an explicit recovery control that keeps default startup empty and can clear saved bytes without mutating the live review.
@@ -62,7 +70,7 @@ authorization, history, and transient UI state are never trusted from storage.
 
 - 121 unit, component, state, recovery, receipt, and WebMCP tests passed.
 - 2 deterministic WebMCP evaluation tests passed.
-- 9 Playwright end-to-end and accessibility tests passed.
+- 10 Playwright end-to-end, responsive-layout, and accessibility tests passed.
 - 3 canonical Ubuntu 24.04 Chromium visual-regression comparisons passed.
 - Prettier formatting, ESLint, TypeScript compilation, and the Vite production build passed.
 - GitHub CI, visual regression, and GitHub Pages deployment passed for the release candidate.
@@ -143,7 +151,7 @@ workspace, proposal-scoped WebMCP registration, protected Logo and Legal layers,
 explicit approval, atomic apply and reject behavior, undo, responsive layout, and
 GitHub Pages deployment.
 
-[Unreleased]: https://github.com/488315/frameguard/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/488315/frameguard/compare/v0.2.0...v0.3.0
+[Unreleased]: https://github.com/488315/frameguard/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/488315/frameguard/compare/v0.2.0...v0.3.1
 [0.2.0]: https://github.com/488315/frameguard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/488315/frameguard/releases/tag/v0.1.0

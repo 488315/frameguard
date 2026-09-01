@@ -298,6 +298,54 @@ test("proposal composer remains usable at required desktop resolutions", async (
   }
 });
 
+test("empty workspace keeps the mobile Layers summary compact", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./");
+
+  const layers = page.getByRole("complementary", {
+    name: "Layers navigator",
+  });
+  await expect(page.getByText("No layers yet")).toBeVisible();
+  await expect(
+    page.getByText("Import a layout or create a proposal to get started."),
+  ).toBeVisible();
+
+  const bounds = await layers.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.height).toBeLessThanOrEqual(96);
+
+  const workspaceHeading = await page
+    .getByRole("heading", { name: "Desktop to mobile" })
+    .boundingBox();
+  const emptyCard = await page
+    .getByText("Start your first review")
+    .locator("..")
+    .boundingBox();
+  expect(workspaceHeading).not.toBeNull();
+  expect(emptyCard).not.toBeNull();
+  expect(emptyCard!.y).toBeGreaterThanOrEqual(
+    workspaceHeading!.y + workspaceHeading!.height + 12,
+  );
+
+  const proposalInspector = page.getByRole("complementary", {
+    name: "Proposal inspector",
+  });
+  const inspectorBounds = await proposalInspector.boundingBox();
+  expect(inspectorBounds).not.toBeNull();
+  expect(inspectorBounds!.height).toBeLessThanOrEqual(140);
+  const createActions = page.getByRole("button", { name: "Create proposal" });
+  const createActionVisibility = await Promise.all(
+    (await createActions.all()).map((button) => button.isVisible()),
+  );
+  expect(createActionVisibility.filter(Boolean)).toHaveLength(1);
+  await page.screenshot({
+    path: `${screenshotDir}/mobile-empty-390x844.png`,
+    fullPage: true,
+  });
+});
+
 test("layers remain available in a 200-percent-zoom equivalent layout", async ({
   page,
 }) => {

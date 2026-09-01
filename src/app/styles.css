@@ -1157,6 +1157,41 @@ select:focus-visible {
   .layers h1 {
     font-size: 18px;
   }
+  .layers-empty-state {
+    max-height: none;
+  }
+  .layers-empty-state .layers-empty {
+    max-width: none;
+    margin: 6px 0 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-align: left;
+  }
+  .layers-empty-state .layers-empty b {
+    flex: none;
+    margin: 0;
+  }
+  .empty-stage {
+    padding: 18px 20px 24px;
+  }
+  .empty-stage .stage-heading {
+    margin-bottom: 16px;
+  }
+  .workspace-empty-card {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 34px 20px;
+    transform: none;
+  }
+  .review {
+    min-height: 0;
+  }
+  .empty-workspace-review .empty,
+  .empty-workspace-review .actions {
+    display: none;
+  }
   .layer-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
