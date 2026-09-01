@@ -56,6 +56,29 @@ describe("WebMCP adapter", () => {
     expect(names).not.toContain("set_change_approval");
   });
 
+  it("revises and withdraws proposals through the production store", async () => {
+    const store = createAppStore();
+    const original = store.createProposal(structuredInput);
+    const revisedResult = await tool(
+      createContextualTools(store),
+      "revise_proposal",
+    ).execute({
+      proposalId: original.id,
+      ...structuredInput,
+      title: "Revised mobile review",
+    });
+    const revised = JSON.parse(revisedResult.content[0].text);
+    expect(revised).toMatchObject({ title: "Revised mobile review" });
+    expect(revised.id).not.toBe(original.id);
+
+    await tool(createContextualTools(store), "withdraw_proposal").execute({});
+    expect(store.getSnapshot()).toMatchObject({
+      document: null,
+      proposal: null,
+      reviewHistory: [{ proposalId: revised.id, outcome: "withdrawn" }],
+    });
+  });
+
   it("exposes only fresh recovered change IDs through proposal inspection", async () => {
     const values = new Map<string, string>([
       [DRAFT_RECOVERY_OPT_IN_KEY, "true"],
