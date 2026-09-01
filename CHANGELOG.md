@@ -5,7 +5,15 @@ This document records the user-visible evolution of FrameGuard. FrameGuard follo
 
 ## [Unreleased]
 
-### WebMCP contract and review safety
+## [0.3.0] - 2026-09-01
+
+FrameGuard 0.3.0 strengthens the product around one clear boundary: agents may
+propose visual work, policy constrains it, and only a human can grant the exact
+one-use authority needed to commit approved changes. It also adds browser-local
+draft recovery, a synchronized Layers navigator, deterministic visual-regression
+gates, and substantially broader automated coverage.
+
+### Bounded WebMCP authority
 
 - Registers state-dependent tools only while their document, review, undo, or one-use authorization prerequisites hold.
 - Removes agent-facing approval decisions and the predefined adaptation path; adds proposal inspection, pre-review revision, and non-mutating withdrawal tools.
@@ -14,6 +22,21 @@ This document records the user-visible evolution of FrameGuard. FrameGuard follo
 - Adds an executable deterministic WebMCP workflow gate and a separate browser-agent evaluation protocol.
 - Prevents undo from being offered while a newer proposal is active, avoiding accidental loss of in-progress review work.
 
+The tool surface now has one responsibility per operation: inspect the committed
+document, create or inspect a proposal, revise or withdraw an unreviewed proposal,
+apply a human-authorized subset, undo the last committed change set, or export its
+review receipt. Approval and rejection remain human-only UI actions. Agent proposal
+revision preserves provisional workspace ownership, refuses after review begins,
+and withdrawal leaves no committed mutation behind.
+
+### Review workspace and Layers navigation
+
+- Adds an accessible Layers navigator derived from authoritative review state, including protected status and unresolved-change indicators.
+- Synchronizes layer selection across the navigator, desktop canvas, mobile canvas, and proposal inspector without creating a second state owner.
+- Keeps selected rows visible, supports keyboard interaction and visible focus, and remains usable with long labels, narrow layouts, high display density, and reduced motion.
+- Separates the blocked protected-Logo annotation from the masthead so policy evidence stays readable without obscuring the design.
+- Improves desktop readability and makes the mobile before/after comparison explicitly two-up, with clearer changed-headline evidence.
+
 ### Opt-in browser-local draft recovery
 
 - Added an explicit recovery control that keeps default startup empty and can clear saved bytes without mutating the live review.
@@ -21,6 +44,35 @@ This document records the user-visible evolution of FrameGuard. FrameGuard follo
 - Persists only bounded, versioned authority-owned proposal input, origin/document, and decisions; transient UI, WebMCP, authorization, and history state remain excluded.
 - Fails closed for malformed, stale, inconsistent, oversized, partial, or protection-tampered data and visibly reports browser-storage failures.
 - Attempts both payload invalidation and durable opt-out when persisting a newer active review fails, and does not report recovery disabled when storage rejects both safeguards.
+
+Recovery is deliberately local and opt-in. Applying, rejecting, resetting, or
+disabling recovery clears the saved draft. Restored input is revalidated through a
+new isolated review authority before adoption; stale identifiers, policy results,
+authorization, history, and transient UI state are never trusted from storage.
+
+### Quality, accessibility, and project operations
+
+- Adds GitHub Actions gates for formatting, linting, unit/component tests, production build, and Playwright browser workflows.
+- Adds exactly three reviewed Ubuntu 24.04 Chromium baselines for the empty workspace, active side-by-side proposal, and blocked protected-Logo state.
+- Adds a serious-impact accessibility violation gate and deterministic reduced-motion coverage using immediate, non-retrying checkpoints.
+- Expands end-to-end coverage for synchronized Layers review, draft recovery, proposal lifecycle, bounded authorization, protected targets, receipts, and undo.
+- Adds contribution guidance and structured bug/feature issue templates, and updates architecture, evaluation, product-positioning, and visual-evidence documentation.
+
+### Verification
+
+- 121 unit, component, state, recovery, receipt, and WebMCP tests passed.
+- 2 deterministic WebMCP evaluation tests passed.
+- 9 Playwright end-to-end and accessibility tests passed.
+- 3 canonical Ubuntu 24.04 Chromium visual-regression comparisons passed.
+- Prettier formatting, ESLint, TypeScript compilation, and the Vite production build passed.
+- GitHub CI, visual regression, and GitHub Pages deployment passed for the release candidate.
+
+### Compatibility and known limits
+
+- FrameGuard remains a browser-local application with no server-side collaboration or account system.
+- WebMCP agent tools require a compatible browser; the human review workflow remains usable when WebMCP is unavailable.
+- Draft recovery is opt-in per browser and intentionally excludes authorization, history, selection, activity, and composer text.
+- This release does not claim completion of external browser-agent trials or competition submission/video work.
 
 ## [0.2.0] - 2026-08-26
 
@@ -91,5 +143,7 @@ workspace, proposal-scoped WebMCP registration, protected Logo and Legal layers,
 explicit approval, atomic apply and reject behavior, undo, responsive layout, and
 GitHub Pages deployment.
 
+[Unreleased]: https://github.com/488315/frameguard/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/488315/frameguard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/488315/frameguard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/488315/frameguard/releases/tag/v0.1.0
