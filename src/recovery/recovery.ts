@@ -146,6 +146,14 @@ export function createDraftRecovery(storage: Storage): DraftRecovery {
     }
     return errorStatus(error);
   };
+  const failClosedAfterWrite = (error: unknown): RecoveryStatus => {
+    try {
+      storage.removeItem(DRAFT_RECOVERY_KEY);
+    } catch {
+      // The durable opt-out marker below is the fallback invalidation boundary.
+    }
+    return failClosedAfterClear(error);
+  };
   const persist = (authority: ReviewAuthority): RecoveryStatus => {
     if (!enabled)
       return { enabled: false, tone: "off", message: "Draft recovery is off." };
@@ -167,7 +175,7 @@ export function createDraftRecovery(storage: Storage): DraftRecovery {
       };
     } catch (error) {
       return authority.exportActiveDraft()
-        ? errorStatus(error)
+        ? failClosedAfterWrite(error)
         : failClosedAfterClear(error);
     }
   };

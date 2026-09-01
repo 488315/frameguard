@@ -402,6 +402,61 @@ describe("draft recovery adapter", () => {
     });
   });
 
+  it("does not report recovery disabled when stale-draft invalidation fails", () => {
+    const storage = enabledStorage();
+    const store = createAppStore({ recovery: createDraftRecovery(storage) });
+    const proposal = store.createProposal(proposalInput);
+    store.setApproval(proposal.changes[0].id, true);
+    const stalePayload = storage.getItem(DRAFT_RECOVERY_KEY);
+
+    vi.spyOn(storage, "removeItem").mockImplementation(() => {
+      throw new Error("clear blocked");
+    });
+    vi.spyOn(storage, "setItem").mockImplementation(() => {
+      throw new Error("write blocked");
+    });
+    store.setApproval(proposal.changes[0].id, false);
+
+    expect(store.getSnapshot().proposal?.changes[0].decision).toBe("pending");
+    expect(store.getSnapshot().recovery).toMatchObject({
+      enabled: true,
+      tone: "error",
+    });
+    expect(storage.getItem(DRAFT_RECOVERY_KEY)).toBe(stalePayload);
+    expect(storage.getItem(DRAFT_RECOVERY_OPT_IN_KEY)).toBe("true");
+  });
+
+  it("invalidates an older draft when a newer active review cannot be saved", () => {
+    const storage = enabledStorage();
+    const store = createAppStore({ recovery: createDraftRecovery(storage) });
+    const proposal = store.createProposal(proposalInput);
+    store.setApproval(proposal.changes[0].id, true);
+    const stalePayload = storage.getItem(DRAFT_RECOVERY_KEY);
+    expect(stalePayload).toContain('"approved"');
+
+    const originalSetItem = storage.setItem.bind(storage);
+    vi.spyOn(storage, "setItem").mockImplementation((key, value) => {
+      if (key === DRAFT_RECOVERY_KEY) throw new Error("quota unavailable");
+      originalSetItem(key, value);
+    });
+    store.setApproval(proposal.changes[0].id, false);
+
+    expect(store.getSnapshot().proposal?.changes[0].decision).toBe("pending");
+    expect(store.getSnapshot().recovery).toMatchObject({
+      enabled: false,
+      tone: "error",
+    });
+    expect(storage.getItem(DRAFT_RECOVERY_KEY)).toBeNull();
+    expect(storage.getItem(DRAFT_RECOVERY_OPT_IN_KEY)).toBe("false");
+
+    const restored = createAppStore({ recovery: createDraftRecovery(storage) });
+    expect(restored.getSnapshot()).toMatchObject({
+      document: null,
+      proposal: null,
+      recovery: { enabled: false, tone: "off" },
+    });
+  });
+
   it("replays rejected decisions and preserves undo after a recovered apply", () => {
     const storage = enabledStorage();
     const first = createAppStore({ recovery: createDraftRecovery(storage) });

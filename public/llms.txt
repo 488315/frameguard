@@ -12,5 +12,5 @@ FrameGuard is a local human-in-the-loop visual change-review demonstration for W
 
 ## Documentation
 
-- [Project README](/README.md)
-- [WebMCP evaluations](/docs/evaluations.md)
+- [Project README](https://github.com/488315/frameguard/blob/main/README.md)
+- [WebMCP evaluations](https://github.com/488315/frameguard/blob/main/docs/evaluations.md)

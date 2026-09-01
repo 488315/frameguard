@@ -37,7 +37,7 @@ export function ReviewHeader({
       <p>{state.document ? "Still / Life · Mobile adaptation" : "Workspace"}</p>
       <div className="header-actions">
         <button
-          disabled={!state.canUndo || busy}
+          disabled={!state.canUndo || Boolean(state.proposal) || busy}
           onClick={() => run("Undoing change set", store.undo)}
         >
           <ArrowCounterClockwise /> Undo

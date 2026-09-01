@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -436,6 +437,36 @@ test("reviews individual changes, applies only approval, records history, and un
   });
   await user.click(screen.getByRole("button", { name: "Undo" }));
   expect(screen.getByText("REVISION 01")).toBeVisible();
+});
+
+test("does not offer undo while a newer proposal is active", async () => {
+  const user = userEvent.setup();
+  const { store } = activeStore();
+  render(<App store={store} />);
+  await user.click(
+    screen.getByRole("button", { name: "Approve Headline change" }),
+  );
+  await user.click(screen.getByRole("button", { name: "Apply 1 change" }));
+  expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+
+  act(() => {
+    store.createProposal({
+      ...customInput,
+      expectedRevision: 2,
+      changes: [
+        {
+          ...customInput.changes[0],
+          operation: {
+            ...customInput.changes[0].operation,
+            value: "A second mobile headline",
+          },
+        },
+      ],
+    });
+  });
+
+  expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+  expect(store.getSnapshot().proposal).not.toBeNull();
 });
 
 test("reject all preserves an imported committed document", async () => {

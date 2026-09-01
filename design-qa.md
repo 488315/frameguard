@@ -2,7 +2,7 @@
 
 ## Reference comparison
 
-- Reference: `C:\Users\kjones\AppData\Local\Temp\codex-clipboard-383a7f61-1a32-4b76-84f8-bb29a30a59f7.png` (`1672x941`).
+- Original reference: external `1672x941` design input retained only as historical provenance; the machine-local source path is not repository evidence.
 - Matched capture: `artifacts/screenshots/empty-reference-1672x941-refined.png`.
 - Side-by-side comparison: `artifacts/screenshots/empty-reference-comparison.png`.
 - The matched capture uses the same viewport and empty state as the reference.
@@ -36,7 +36,16 @@
 - Proposal annotations and protected logo block: passed.
 - Approve two changes, apply, and undo: passed.
 - Reject provisional proposal back to empty: passed.
-- Playwright workflow: 4/4 passed.
+- Historical Playwright workflow at the time of this visual review: 4/4 passed. See the current validation section below for the maintained suite.
 - Browser console warnings/errors: none observed in the automated product flow.
 
 final result: passed
+
+## Current automated validation
+
+The maintained Playwright workflow currently contains nine non-visual browser
+tests. Canonical visual baselines are compared separately on Ubuntu 24.04 with
+Chromium through `npm run test:visual`; Windows runs must not update those
+baselines. Record fresh command results in the change or pull request performing
+the validation instead of treating this historical design review as current CI
+evidence.

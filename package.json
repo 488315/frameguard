@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "build": "tsc -b && vite build",
     "test": "vitest run",
+    "test:evals": "vitest run src/webmcp/evaluations.test.ts",
     "test:e2e": "playwright test",
     "test:visual": "playwright test --config=playwright.visual.config.ts",
     "test:watch": "vitest",

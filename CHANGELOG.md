@@ -5,12 +5,20 @@ This document records the user-visible evolution of FrameGuard. FrameGuard follo
 
 ## [Unreleased]
 
+### WebMCP contract and review safety
+
+- Registers state-dependent tools only while their document, review, undo, or one-use authorization prerequisites hold.
+- Exposes agent-apply authorization during inspection, distinguishes exact proposals from the predefined adaptation demo, and marks user-authored or imported tool output as untrusted.
+- Adds an executable deterministic WebMCP workflow gate and a separate browser-agent evaluation protocol.
+- Prevents undo from being offered while a newer proposal is active, avoiding accidental loss of in-progress review work.
+
 ### Opt-in browser-local draft recovery
 
 - Added an explicit recovery control that keeps default startup empty and can clear saved bytes without mutating the live review.
 - Reconstructs saved provisional or imported reviews through isolated production validation, with fresh IDs and rederived protection and applicability.
 - Persists only bounded, versioned authority-owned proposal input, origin/document, and decisions; transient UI, WebMCP, authorization, and history state remain excluded.
 - Fails closed for malformed, stale, inconsistent, oversized, partial, or protection-tampered data and visibly reports browser-storage failures.
+- Attempts both payload invalidation and durable opt-out when persisting a newer active review fails, and does not report recovery disabled when storage rejects both safeguards.
 
 ## [0.2.0] - 2026-08-26
 

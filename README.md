@@ -45,9 +45,9 @@ activity, agent authorization, and composer text are never restored.
 
 Open FrameGuard in a WebMCP-capable browser and give the agent this prompt:
 
-> Inspect the FrameGuard document. Create a proposal titled “Mobile launch review” that changes the mobile headline to “Make room for what comes next.”, moves the mobile image position to “72% center”, and attempts to change the protected Logo. Explain each change, then stop and wait for my approval.
+> Inspect the FrameGuard document. Create a proposal titled “Mobile launch review” that changes the mobile headline to “Make room for the next chapter.”, moves the mobile image position to “72% center”, and attempts to change the protected Logo. Explain each change, then stop and wait for my approval.
 
-The attempted logo edit appears in the review but remains blocked. Drafting, previewing, and approving do not alter the committed document. After reviewing the proposal, ask the agent to apply approved changes, undo the change set, or export the review receipt.
+The attempted logo edit appears in the review but remains blocked. Drafting, previewing, and approving do not alter the committed document. After approving at least one eligible change, select **Allow agent apply once** in FrameGuard, then ask the agent to apply the approved changes. That one-use authorization is consumed by the apply attempt. The agent can also undo an applied change set or return the review receipt when those operations are available.
 
 ## WebMCP tool surface
 
@@ -60,9 +60,9 @@ The attempted logo edit appears in the review but remains blocked. Drafting, pre
 | `apply_approved_changes` | Atomically commit only the approved changes.                       |
 | `reject_change_set`      | Discard the active proposal without changing the document.         |
 | `undo_last_change_set`   | Restore the previous committed document.                           |
-| `export_review_receipt`  | Download a record of the completed review.                         |
+| `export_review_receipt`  | Return a local record of the completed review.                     |
 
-Tool schemas are generated from current application state, so review-only tools expose only valid change identifiers. Agent actions and human actions use the same store and validation path, keeping the visible UI synchronized with the underlying review state.
+Tool registrations and schemas are generated from current application state. Creation tools are absent during an active review, undo and export appear only when their prerequisites exist, review tools expose only current applicable change identifiers, and apply appears only after one-use human authorization. Agent actions and human actions use the same store and validation path, keeping the visible UI synchronized with the underlying review state. Tool outputs that can contain imported or user-authored content are marked as untrusted for the browser agent.
 
 ## Run locally
 
@@ -96,6 +96,7 @@ FrameGuard starts empty. A validated import or explicit proposal provisions the 
 npm run format
 npm run lint
 npm test
+npm run test:evals
 npm run build
 npm run test:e2e
 ```

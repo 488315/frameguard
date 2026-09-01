@@ -41,6 +41,7 @@ Run the full local gate before requesting review:
 npm run format
 npm run lint
 npm test
+npm run test:evals
 npm run build
 npm run test:e2e
 ```
